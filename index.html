@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<script type="application/json" id="cowork-artifact-meta">
+{
+  "name": "Stumble",
+  "schemaVersion": 1,
+  "description": "A StumbleUpon-style discovery tool with 250+ hand-curated sites tagged across 12 attributes (interactive, visual, audio, text-heavy, nostalgic, weird, beautiful, scientific, playful, meditative, deep-dive, maker-tool). Thumbs up/down train per-tag weights that bias future stumbles via softmax sampling. 'More like this' gives a one-shot boost toward the current site's tags. Bookmarks, history, ratings, and learned taste persist via localStorage."
+}
+</script>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Stumble</title>
+<style>
+:root { color-scheme: light; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  background: #faf6ef;
+  color: #1a2332;
+  min-height: 100vh;
+  padding: 28px 20px 60px;
+  line-height: 1.4;
+}
+.container { max-width: 720px; margin: 0 auto; }
+header { text-align: center; margin-bottom: 24px; }
+.logo { font-size: 44px; font-weight: 900; letter-spacing: -1.8px; color: #1a2332; display: inline-flex; align-items: baseline; gap: 4px; }
+.logo .dot { color: #ee5a24; font-size: 52px; line-height: 0.6; }
+.tagline { color: #6b7280; margin-top: 6px; font-size: 13px; font-style: italic; }
+
+.filter-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 12px; }
+.chip { padding: 6px 14px; border: 1.5px solid #e5d5b8; background: #fff; border-radius: 999px; font-size: 12.5px; cursor: pointer; transition: all 0.15s; color: #4b5563; font-weight: 600; font-family: inherit; }
+.chip.active { background: #1a2332; border-color: #1a2332; color: #fff; }
+.chip:hover:not(.active) { border-color: #1a2332; }
+
+.stumble-wrap { text-align: center; margin: 24px 0 12px; }
+.stumble-btn { background: #ee5a24; color: white; border: none; font-size: 22px; font-weight: 800; letter-spacing: 1.5px; padding: 22px 60px; border-radius: 999px; cursor: pointer; box-shadow: 0 4px 0 #b34416, 0 8px 20px rgba(238,90,36,0.3); transition: all 0.1s ease; text-transform: uppercase; font-family: inherit; }
+.stumble-btn:hover { background: #f56c3a; transform: translateY(-1px); box-shadow: 0 5px 0 #b34416, 0 10px 24px rgba(238,90,36,0.35); }
+.stumble-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #b34416, 0 2px 8px rgba(238,90,36,0.3); }
+.kbd-hint { color: #9ca3af; font-size: 11px; margin-top: 10px; }
+.kbd { background: #fff; border: 1px solid #d6c5a8; border-bottom-width: 2px; border-radius: 4px; padding: 1px 6px; font-family: ui-monospace, monospace; font-size: 10.5px; }
+.boost-active { display: inline-block; margin-left: 10px; padding: 3px 10px; border-radius: 999px; background: #fef3c7; color: #92400e; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+
+.card { background: #fff; border: 1.5px solid #e5d5b8; border-radius: 16px; padding: 24px; margin-bottom: 20px; animation: fadeIn 0.25s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.cat-tag { display: inline-block; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; padding: 3px 10px; border-radius: 999px; margin-bottom: 12px; }
+.cat-w { background: #fef3c7; color: #92400e; }
+.cat-e { background: #dbeafe; color: #1e40af; }
+.cat-c { background: #d1fae5; color: #065f46; }
+.cat-a { background: #f3e8ff; color: #6b21a8; }
+
+.card h2 { font-size: 22px; margin-bottom: 4px; letter-spacing: -0.3px; }
+.card .url { color: #6b7280; font-size: 13px; margin-bottom: 14px; word-break: break-all; font-family: ui-monospace, monospace; }
+.card .desc { color: #374151; line-height: 1.5; margin-bottom: 14px; font-size: 15px; }
+.tag-pills { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 18px; }
+.tag-pill { font-size: 11px; padding: 2px 9px; background: #f3eee2; color: #7a6943; border-radius: 999px; font-weight: 500; }
+
+.card-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.btn { padding: 9px 16px; border-radius: 8px; border: 1.5px solid #1a2332; background: transparent; color: #1a2332; font-weight: 600; font-size: 14px; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; transition: all 0.15s; font-family: inherit; }
+.btn-primary { background: #1a2332; color: #fff; }
+.btn:hover { transform: translateY(-1px); }
+.btn-icon { padding: 9px 12px; font-size: 16px; }
+.btn.active-up { background: #16a34a; border-color: #16a34a; color: #fff; }
+.btn.active-down { background: #dc2626; border-color: #dc2626; color: #fff; }
+.btn.bookmarked { background: #ee5a24; border-color: #ee5a24; color: #fff; }
+.btn-boost { background: #fef3c7; border-color: #d97706; color: #92400e; }
+.btn-boost:hover { background: #fde68a; }
+
+.empty { text-align: center; padding: 36px 20px; color: #9ca3af; font-style: italic; font-size: 14px; }
+
+.section { margin-top: 32px; }
+.section-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 8px; border-bottom: 1.5px solid #e5d5b8; margin-bottom: 14px; }
+.section-header h3 { font-size: 13px; text-transform: uppercase; letter-spacing: 1.2px; color: #6b7280; font-weight: 700; }
+.section-header .count { color: #9ca3af; font-size: 12px; }
+
+.list-item { background: #fff; border: 1px solid #e5d5b8; border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.list-info { flex: 1; min-width: 0; }
+.list-info a { color: #1a2332; font-weight: 600; text-decoration: none; display: block; font-size: 14px; }
+.list-info a:hover { color: #ee5a24; }
+.list-info .b-url { color: #9ca3af; font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: ui-monospace, monospace; margin-top: 2px; }
+.rm-btn { background: none; border: none; color: #9ca3af; cursor: pointer; font-size: 20px; padding: 4px 10px; border-radius: 6px; font-family: inherit; }
+.rm-btn:hover { color: #ee5a24; background: #fff5f0; }
+
+.taste-section { background: #fff; border: 1.5px solid #e5d5b8; border-radius: 14px; padding: 16px 18px; margin-top: 20px; }
+.taste-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+.taste-label { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #6b7280; min-width: 56px; }
+.taste-pill { font-size: 12px; padding: 3px 10px; border-radius: 999px; font-weight: 600; }
+.taste-pill.like { background: #dcfce7; color: #15803d; }
+.taste-pill.dislike { background: #fee2e2; color: #b91c1c; }
+.taste-pill.neutral { background: #f3f4f6; color: #6b7280; font-style: italic; font-weight: 500; }
+.taste-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding-top: 10px; border-top: 1px dashed #e5d5b8; }
+.taste-foot .stat { color: #9ca3af; font-size: 11.5px; font-family: ui-monospace, monospace; }
+
+.stats { text-align: center; color: #9ca3af; font-size: 11.5px; margin-top: 12px; font-family: ui-monospace, monospace; }
+
+.toggle-row { text-align: center; margin-top: 12px; }
+.text-link { background: none; border: none; color: #6b7280; cursor: pointer; font-size: 12px; text-decoration: underline; font-family: inherit; }
+.text-link.danger { color: #b91c1c; }
+.collapsible { display: none; margin-top: 12px; }
+.collapsible.open { display: block; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="logo">stumble<span class="dot">.</span></div>
+    <div class="tagline">a hand-curated walk through the weirder, smarter web</div>
+  </header>
+
+  <div class="filter-row" id="filters"></div>
+  <div class="stats" id="stats"></div>
+
+  <div class="stumble-wrap">
+    <button class="stumble-btn" id="stumbleBtn">Stumble</button>
+    <span class="boost-active" id="boostBadge" style="display:none;">★ More-like-this active</span>
+    <div class="kbd-hint">or press <span class="kbd">space</span></div>
+  </div>
+
+  <div id="cardArea"></div>
+
+  <div class="taste-section" id="tasteSection">
+    <div class="taste-row"><span class="taste-label">★ likes</span><div id="likeTags" style="display:flex;gap:6px;flex-wrap:wrap;"></div></div>
+    <div class="taste-row"><span class="taste-label">✕ dislikes</span><div id="dislikeTags" style="display:flex;gap:6px;flex-wrap:wrap;"></div></div>
+    <div class="taste-foot">
+      <span class="stat" id="ratingStat"></span>
+      <button class="text-link danger" id="resetLearning">reset learning</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <h3>★ Bookmarks</h3>
+      <span class="count" id="bmCount"></span>
+    </div>
+    <div id="bookmarks"></div>
+  </div>
+
+  <div class="toggle-row">
+    <button class="text-link" id="histToggle">show recent history</button>
+    <div class="collapsible" id="history"></div>
+  </div>
+</div>
+
+<script>
+// Tag vocabulary — single-letter codes for compact site data, expanded to readable names in UI.
+const TAGS = {
+  i: "interactive",
+  v: "visual",
+  a: "audio",
+  t: "text-heavy",
+  n: "nostalgic",
+  w: "weird",
+  b: "beautiful",
+  s: "scientific",
+  p: "playful",
+  m: "meditative",
+  d: "deep-dive",
+  k: "maker-tool"
+};
+
+const CATEGORIES = {
+  w: "Weird & Quirky",
+  e: "Enlightening",
+  c: "Creative Tools",
+  a: "Archives & Wikis"
+};
+
+// Catalog — { u: url, t: title, d: description, c: category, g: tag-letters }
+const SITES = [
+  // ===== Weird & Quirky =====
+  {u:"https://pointerpointer.com",t:"Pointer Pointer",d:"Photos of people pointing at exactly where your cursor is. Endlessly satisfying.",c:"w",g:"ivpw"},
+  {u:"https://zombo.com",t:"Zombo.com",d:"Welcome. The only limit is yourself. The 1999 promise of the web preserved in amber.",c:"w",g:"nwp"},
+  {u:"https://theuselessweb.com",t:"The Useless Web",d:"A meta-stumbler. Sends you to one delightfully pointless site after another.",c:"w",g:"wp"},
+  {u:"https://www.window-swap.com",t:"WindowSwap",d:"Look out a window from somewhere else in the world. Quietly profound.",c:"w",g:"vmb"},
+  {u:"https://staggeringbeauty.com",t:"Staggering Beauty",d:"A worm follows your cursor. Shake fast for a treat. (Photosensitivity warning.)",c:"w",g:"iw"},
+  {u:"https://fallingfalling.com",t:"Falling Falling",d:"Infinite hypnotic descent set to ambient drone.",c:"w",g:"vm"},
+  {u:"https://endless.horse",t:"Endless Horse",d:"It's a horse. With endless legs. Scroll.",c:"w",g:"wp"},
+  {u:"https://hackertyper.net",t:"Hacker Typer",d:"Mash any keys to look like you're hacking the Gibson.",c:"w",g:"ipn"},
+  {u:"https://findtheinvisiblecow.com",t:"Find the Invisible Cow",d:"Hot/cold game played with your speakers. Yelling at you to find the cow.",c:"w",g:"iap"},
+  {u:"https://listen.hatnote.com",t:"Listen to Wikipedia",d:"Real-time edits to Wikipedia rendered as gentle bells and string plucks.",c:"w",g:"avmb"},
+  {u:"https://neal.fun",t:"neal.fun",d:"The single best playground on the internet. Spend an afternoon here.",c:"w",g:"ipd"},
+  {u:"https://neal.fun/internet-roadtrip",t:"Internet Roadtrip",d:"Crowd-driven Street View road trip. Vote on which way to turn next.",c:"w",g:"ivp"},
+  {u:"https://neal.fun/stimulation-clicker",t:"Stimulation Clicker",d:"A clicker game that becomes a deranged sensory assault. Genius and unsettling.",c:"w",g:"iwpd"},
+  {u:"https://neal.fun/deep-sea",t:"The Deep Sea",d:"Scroll down through the entire ocean. The depths get genuinely creepy.",c:"w",g:"ivb"},
+  {u:"https://neal.fun/password-game",t:"The Password Game",d:"Make a password. The rules get worse and worse. You will not finish.",c:"w",g:"ipdw"},
+  {u:"https://neal.fun/asteroid-launcher",t:"Asteroid Launcher",d:"Drop an asteroid anywhere on Earth and see what it would actually do.",c:"w",g:"isp"},
+  {u:"https://neal.fun/spend",t:"Spend Bill Gates' Money",d:"Try to spend it. You can't.",c:"w",g:"ip"},
+  {u:"https://floor796.com",t:"Floor 796",d:"Massive hand-animated cross-section of an alien skyscraper. Find the references.",c:"w",g:"vbd"},
+  {u:"https://corndog.io",t:"Corndog",d:"A corndog you can spin. That's it. That's the site.",c:"w",g:"wp"},
+  {u:"https://omfgdogs.com",t:"OMFG Dogs",d:"Dogs running. Music. The 2010s called.",c:"w",g:"nawp"},
+  {u:"https://www.cat-bounce.com",t:"Cat Bounce",d:"Cats. Bouncing. With physics.",c:"w",g:"pw"},
+  {u:"https://procatinator.com",t:"Procatinator",d:"Cat GIFs perfectly synced to music.",c:"w",g:"avp"},
+  {u:"https://www.sanger.dk",t:"He-Man Sings",d:"Heyyeyaaeyaaaeyaeyaa. You know the one.",c:"w",g:"nawp"},
+  {u:"https://www.emojitracker.com",t:"Emoji Tracker",d:"Real-time emoji usage on Twitter. Watch the world feel things.",c:"w",g:"vad"},
+  {u:"https://reverttosaved.com",t:"Revert to Saved",d:"Doodle on a virtual whiteboard. Press R to revert. Strangely meditative.",c:"w",g:"imk"},
+  {u:"https://littlealchemy2.com",t:"Little Alchemy 2",d:"Combine four elements to discover hundreds of things. The original time-sink.",c:"w",g:"ipd"},
+  {u:"https://nooooooooooooooo.com",t:"Nooooo!",d:"An emergency Darth Vader 'NOOO' button for when you need one.",c:"w",g:"pw"},
+  {u:"https://eelslap.com",t:"Eel Slap",d:"Slap a man with an eel. Move your mouse to slap.",c:"w",g:"pw"},
+  {u:"https://thiscatdoesnotexist.com",t:"This Cat Does Not Exist",d:"Refresh for an AI-hallucinated cat. Sometimes nightmare fuel.",c:"w",g:"vw"},
+  {u:"https://www.decisionproblem.com/paperclips/",t:"Universal Paperclips",d:"A clicker game about an AI told to make paperclips. Existential. Brilliant.",c:"w",g:"idpt"},
+  {u:"https://orteil.dashnet.org/cookieclicker/",t:"Cookie Clicker",d:"The original incremental game. You will check back tomorrow.",c:"w",g:"idp"},
+  {u:"https://pixelthoughts.co",t:"Pixel Thoughts",d:"60-second meditation. Type a thought. Watch it shrink to a dot.",c:"w",g:"imb"},
+  {u:"https://rainymood.com",t:"Rainy Mood",d:"Just rain. For as long as you need.",c:"w",g:"am"},
+  {u:"https://stars.chromeexperiments.com",t:"100,000 Stars",d:"Tour our stellar neighborhood in 3D. Beautiful and terrifying in scale.",c:"w",g:"ivbs"},
+  {u:"https://www.thetruesize.com",t:"The True Size",d:"Drag countries around the globe to see their actual size. Africa is enormous.",c:"w",g:"ivs"},
+  {u:"https://generative.fm",t:"Generative.fm",d:"Endless ambient music, algorithmically generated. Never the same piece twice.",c:"w",g:"amkb"},
+  {u:"https://howtoexitvim.com",t:"How to Exit Vim",d:"For everyone who's ever been trapped. The ancient programmer rite-of-passage.",c:"w",g:"pw"},
+  {u:"https://thewikigame.com",t:"The Wiki Game",d:"Race from one Wikipedia article to another using only links. Surprisingly hard.",c:"w",g:"ipd"},
+  {u:"https://www.googlefeud.com",t:"Google Feud",d:"Family Feud, but with Google's autocomplete. Humanity, distilled.",c:"w",g:"ip"},
+  {u:"https://www.whatthefuckshouldimakefordinner.com",t:"WTF Should I Make For Dinner",d:"Random recipe generator with the personality of a frustrated friend.",c:"w",g:"ip"},
+  {u:"https://internet-map.net",t:"The Internet Map",d:"A 2011 cartography of the entire web as a galaxy. Click a star, see a site.",c:"w",g:"ivd"},
+  {u:"https://www.howmanypeoplearein.space",t:"How Many People Are In Space?",d:"The answer is a small number. The site does only this.",c:"w",g:"vsp"},
+  {u:"https://htwins.net/scale2/",t:"Scale of the Universe",d:"Slide from quarks to the observable universe. Cary Huang's masterpiece.",c:"w",g:"ivsb"},
+  {u:"https://www.asciimation.co.nz",t:"Star Wars ASCIImation",d:"The original Star Wars film. Rendered entirely in ASCII art. Plays in your terminal.",c:"w",g:"ntp"},
+  {u:"https://www.shadyurl.com",t:"Shady URL",d:"Make any link look as suspicious as possible. shady.lc/etc.",c:"w",g:"ip"},
+  {u:"https://heeeeeeeey.com",t:"Heeeeeeey",d:"It's just heeeeeyyy. With dancing dudes. Forever.",c:"w",g:"pw"},
+  {u:"https://www.donothingfor2minutes.com",t:"Do Nothing for 2 Minutes",d:"A timer. A beach. Move your mouse and start over. Try it.",c:"w",g:"im"},
+  {u:"https://www.dontclick.it",t:"Don't Click It",d:"A 2005 interface experiment. Try to navigate without clicking. Harder than it sounds.",c:"w",g:"iwp"},
+  {u:"https://zoomquilt.org",t:"The Zoomquilt",d:"An infinite zoom through a hand-painted dreamscape. Trance-inducing.",c:"w",g:"vbm"},
+  {u:"https://lookatthisfreakingoat.com",t:"Look at This Freaking Goat",d:"A goat. Look at it. That's the project.",c:"w",g:"pw"},
+  {u:"https://www.dontevenreply.com",t:"Don't Even Reply",d:"A decade-old archive of Craigslist email pranks. Dark humor classic.",c:"w",g:"tpw"},
+  {u:"https://agar.io",t:"Agar.io",d:"Be a dot. Eat smaller dots. Avoid bigger dots. Multiplayer chaos.",c:"w",g:"ip"},
+  {u:"https://en.wikipedia.org/wiki/Special:Random",t:"Wikipedia: Random Article",d:"Roll the dice on the entirety of human knowledge. The original stumble.",c:"w",g:"tdp"},
+  {u:"https://incoherency.co.uk/interest/",t:"Compound Interest Explorer",d:"A simple toy that makes the math of compounding feel viscerally unfair.",c:"w",g:"isp"},
+  {u:"https://windows93.net",t:"Windows 93",d:"A fully functional fake OS from an alternate 1993. Explore the file system, play games, open apps. Deeply strange.",c:"w",g:"nwpi"},
+  {u:"https://akinator.com",t:"Akinator",d:"Think of any real or fictional person. The web genie guesses in 20 questions. Almost always right.",c:"w",g:"ipw"},
+  {u:"https://www.geoguessr.com",t:"GeoGuessr",d:"Dropped into a random Street View location anywhere on Earth. Guess where you are using only visual clues. Humbling.",c:"w",g:"ivp"},
+  {u:"https://bouncingdvdlogo.com",t:"Bouncing DVD Logo",d:"The famous screensaver, faithfully recreated. Keep watching. Wait for the corner hit.",c:"w",g:"pw"},
+  {u:"https://www.sporcle.com",t:"Sporcle",d:"Name all 195 countries in 12 minutes. The internet's best trivia site. You'll discover what you've forgotten.",c:"w",g:"ipd"},
+  {u:"https://earth.nullschool.net",t:"Earth Wind Map",d:"Real-time visualization of global wind, weather, and ocean currents. Meditative at planetary scale.",c:"w",g:"vmbs"},
+  {u:"https://stellarium-web.org",t:"Stellarium",d:"A full planetarium in your browser. Shows exactly what's above you right now — every star named and mapped.",c:"w",g:"ivsb"},
+  {u:"https://tixy.land",t:"tixy.land",d:"Write a math expression using t, i, x, y — it renders as live generative animation on a 16×16 dot grid.",c:"w",g:"ivkp"},
+  {u:"https://histography.io",t:"Histography",d:"Five thousand years of history as one giant interactive timeline. Zoom from centuries to single days.",c:"w",g:"ivd"},
+  {u:"https://river-runner-global.samlearner.com",t:"River Runner",d:"Click anywhere on land; trace the exact path a raindrop takes from that spot all the way to the ocean.",c:"w",g:"ivms"},
+  {u:"https://www.drawastickman.com",t:"Draw a Stickman",d:"Draw your own stickman; it immediately goes on a quest. Your crayon drawings become props in the adventure.",c:"w",g:"ipbk"},
+  {u:"https://typeracer.com",t:"TypeRacer",d:"Race other humans by typing passages from books and films. You'll learn your exact words-per-minute.",c:"w",g:"ip"},
+  {u:"https://koalastothemax.com",t:"Koalas to the Max",d:"Mouse over the circles. They split and multiply. Keep going. Something emerges if you're patient.",c:"w",g:"ivmp"},
+
+  // ===== Enlightening =====
+  {u:"https://ciechanow.ski",t:"Bartosz Ciechanowski",d:"The most beautiful interactive explainers on the internet. Lenses, GPS, the inner ear.",c:"e",g:"ivsbd"},
+  {u:"https://ncase.me",t:"Nicky Case",d:"Playable explorables about trust, fear, polygons, and how minds work. Education as game.",c:"e",g:"ips"},
+  {u:"https://ncase.me/trust",t:"The Evolution of Trust",d:"A 30-min interactive game about game theory that will change how you see cooperation.",c:"e",g:"ispd"},
+  {u:"https://ncase.me/polygons",t:"Parable of the Polygons",d:"Drag squares and triangles to discover how small biases create huge patterns of segregation.",c:"e",g:"isp"},
+  {u:"https://ncase.me/loopy",t:"LOOPY",d:"A tool for thinking in systems. Draw causal loops, watch how they behave.",c:"e",g:"iks"},
+  {u:"https://explorabl.es",t:"Explorable Explanations",d:"An index of dozens of interactive explainers. The whole genre, in one place.",c:"e",g:"is"},
+  {u:"https://pudding.cool",t:"The Pudding",d:"Visual essays on culture you didn't know you wanted. Everything they make is good.",c:"e",g:"vtbd"},
+  {u:"https://ourworldindata.org",t:"Our World in Data",d:"Charts and data on every big question facing humanity. Calmly excellent.",c:"e",g:"vsd"},
+  {u:"https://distill.pub",t:"Distill",d:"Beautifully illustrated machine learning research. The standard for clear thinking made visible.",c:"e",g:"vsbd"},
+  {u:"https://setosa.io",t:"Setosa",d:"Visual explanations of math and stats — eigenvectors, conditional probability, image kernels.",c:"e",g:"ivs"},
+  {u:"https://waitbutwhy.com",t:"Wait But Why",d:"Tim Urban's stick-figure essays about AI, Mars, procrastination, and being human.",c:"e",g:"td"},
+  {u:"https://aeon.co",t:"Aeon",d:"Long essays on philosophy, science, and culture. Calm, unhurried, deep.",c:"e",g:"td"},
+  {u:"https://www.quantamagazine.org",t:"Quanta Magazine",d:"Best science journalism on the open web. Funded by the Simons Foundation.",c:"e",g:"tsd"},
+  {u:"https://www.atlasobscura.com",t:"Atlas Obscura",d:"A travel guide to the strange, the curious, and the underground.",c:"e",g:"tvd"},
+  {u:"https://www.futilitycloset.com",t:"Futility Closet",d:"An idler's miscellany of compendious amusements. Daily dose of historical oddities.",c:"e",g:"tp"},
+  {u:"https://longreads.com",t:"Longreads",d:"Curated long-form journalism. The best stuff you'd never find on your own.",c:"e",g:"td"},
+  {u:"https://99percentinvisible.org",t:"99% Invisible",d:"Roman Mars's design podcast and writing. The thought behind everyday things.",c:"e",g:"tab"},
+  {u:"https://www.damninteresting.com",t:"Damn Interesting",d:"Tales of unusual events and unsung heroes from history.",c:"e",g:"td"},
+  {u:"https://thekidshouldseethis.com",t:"The Kid Should See This",d:"Smart, ad-free videos curated for kids. Watchable by anyone with curiosity.",c:"e",g:"vps"},
+  {u:"https://radiooooo.com",t:"Radiooooo",d:"Pick a country and a decade. Hear what its music sounded like.",c:"e",g:"ianb"},
+  {u:"https://acko.net",t:"Acko.net",d:"Steven Wittens's gorgeous, math-dense interactive explanations of graphics and physics.",c:"e",g:"ivsbd"},
+  {u:"https://observablehq.com/explore",t:"Observable Explore",d:"Live, editable data visualizations. Fork them and play.",c:"e",g:"ivsk"},
+  {u:"https://www.visualcapitalist.com",t:"Visual Capitalist",d:"Data-rich infographics about the global economy and resources.",c:"e",g:"v"},
+  {u:"https://worrydream.com",t:"Bret Victor — Worry Dream",d:"The single most influential thinker on dynamic media. Watch 'Inventing on Principle.'",c:"e",g:"itsd"},
+  {u:"https://gwern.net",t:"Gwern Branwen",d:"Obsessive, footnote-laden deep dives on AI, statistics, longevity, and weirder things.",c:"e",g:"tds"},
+  {u:"https://meltingasphalt.com",t:"Melting Asphalt",d:"Kevin Simler's essays on culture, status, evolution, signaling. Each one is a small revelation.",c:"e",g:"td"},
+  {u:"https://www.ribbonfarm.com",t:"Ribbonfarm",d:"Venkatesh Rao's habit of inventing the framework you didn't know you needed.",c:"e",g:"td"},
+  {u:"https://www.themarginalian.org",t:"The Marginalian",d:"Maria Popova (formerly Brain Pickings). Beautifully written meditations on what it is to be alive.",c:"e",g:"tbd"},
+  {u:"https://press.stripe.com",t:"Stripe Press",d:"Beautiful editions of essential books, with several available to read online for free.",c:"e",g:"td"},
+  {u:"https://nautil.us",t:"Nautilus",d:"Science writing that treats its readers like adults. Long-form, deeply researched.",c:"e",g:"tsd"},
+  {u:"https://www.3blue1brown.com",t:"3Blue1Brown",d:"Grant Sanderson teaches math through visualizations that make abstractions feel inevitable.",c:"e",g:"vsb"},
+  {u:"https://ocw.mit.edu",t:"MIT OpenCourseWare",d:"Hundreds of full MIT courses, free, with notes and video lectures. The original open knowledge.",c:"e",g:"ds"},
+  {u:"https://www.complexity-explorables.org",t:"Complexity Explorables",d:"Interactive simulations of complex systems — flocks, epidemics, oscillators, fractals.",c:"e",g:"isb"},
+  {u:"https://hyperphysics.phy-astr.gsu.edu/hbase/index.html",t:"HyperPhysics",d:"A vast hyperlinked physics reference from Georgia State. Ugly. Indispensable.",c:"e",g:"sd"},
+  {u:"https://www.worksinprogress.co",t:"Works in Progress",d:"Long-form essays on the science of progress. Ambitious, optimistic, well-edited.",c:"e",g:"td"},
+  {u:"https://meaningness.com",t:"Meaningness",d:"David Chapman's web book on stages of psychological development and ways of finding meaning.",c:"e",g:"td"},
+  {u:"https://slimemoldtimemold.com",t:"Slime Mold Time Mold",d:"Anonymous group of researchers writing weird, careful science blog posts. Try the obesity series.",c:"e",g:"tsdp"},
+  {u:"https://jeffhuang.com",t:"Jeff Huang's Site",d:"A computer science professor's quietly delightful blog. See 'How to maintain a personal site for 10 years.'",c:"e",g:"tpk"},
+  {u:"https://esahubble.org/images/",t:"Hubble Image Gallery",d:"Every photo the Hubble has taken, in zoomable glory. The universe is absurdly beautiful.",c:"e",g:"vbs"},
+  {u:"https://www.noemamag.com",t:"Noema Magazine",d:"Long-form essays on technology, philosophy, geopolitics. Quietly serious.",c:"e",g:"td"},
+  {u:"https://thecreativeindependent.com",t:"The Creative Independent",d:"Interviews with artists about how they actually work. Funded by Kickstarter.",c:"e",g:"tb"},
+  {u:"https://en.wikipedia.org/wiki/Wikipedia:Unusual_articles",t:"Wikipedia: Unusual Articles",d:"A meta-list of Wikipedia's strangest entries. Genuinely the best rabbit-hole on the internet.",c:"e",g:"tpd"},
+  {u:"https://fermatslibrary.com",t:"Fermat's Library",d:"Famous papers, annotated. Read Shannon, Turing, Watson & Crick with margin notes.",c:"e",g:"tsd"},
+  {u:"https://ar5iv.labs.arxiv.org",t:"arXiv as HTML (ar5iv)",d:"Read arXiv preprints as proper, scrollable web pages instead of PDFs.",c:"e",g:"tsd"},
+  {u:"https://www.astralcodexten.com",t:"Astral Codex Ten",d:"Scott Alexander on psychiatry, rationality, and very long book reviews.",c:"e",g:"td"},
+  {u:"https://www.complexityexplorer.org",t:"Complexity Explorer",d:"Free courses from the Santa Fe Institute on complex systems, networks, agent-based models.",c:"e",g:"isd"},
+  {u:"https://www.radiolab.org",t:"Radiolab",d:"Two decades of episodes about the strangeness of being human. Audio storytelling, perfected.",c:"e",g:"atd"},
+  {u:"https://www.bldgblog.com",t:"BLDGBLOG",d:"Geoff Manaugh's two-decade blog on architecture, archaeology, and weird landscapes.",c:"e",g:"tvd"},
+  {u:"https://www.khanacademy.org",t:"Khan Academy",d:"Sal Khan teaching the world for free. Still the gold standard.",c:"e",g:"isd"},
+  {u:"https://www.ted.com/talks",t:"TED Talks",d:"Pick a topic, watch an expert distill years into 18 minutes. Even the bad ones spark.",c:"e",g:"vd"},
+  {u:"https://en.wikiversity.org",t:"Wikiversity",d:"Wikipedia's lesser-known sibling: actual courses, lessons, and learning materials.",c:"e",g:"td"},
+  {u:"https://lithub.com",t:"Literary Hub",d:"A daily literary magazine. Excerpts, essays, conversations among writers.",c:"e",g:"td"},
+  {u:"https://timetravel.mementoweb.org",t:"Time Travel (Memento)",d:"Search any URL across all web archives at once. Time machine for the entire web.",c:"e",g:"ind"},
+  {u:"https://kurzgesagt.org",t:"Kurzgesagt",d:"Animated explainers on big questions — black holes, the immune system, Fermi paradox.",c:"e",g:"vsb"},
+  {u:"https://fs.blog",t:"Farnam Street",d:"Shane Parrish's compendium of mental models and decision-making. How smart people actually think about hard problems.",c:"e",g:"td"},
+  {u:"https://plato.stanford.edu",t:"Stanford Encyclopedia of Philosophy",d:"The peer-reviewed, authoritative reference on every philosophical topic. Free, rigorous, and remarkably readable.",c:"e",g:"tds"},
+  {u:"https://seeing-theory.brown.edu",t:"Seeing Theory",d:"Brown University's visual introduction to probability and statistics. Possibly the most beautiful textbook ever made.",c:"e",g:"ivsb"},
+  {u:"https://betterexplained.com",t:"Better Explained",d:"Kalid Azad teaches math through intuition, not memorization. If Euler's formula ever felt inscrutable, start here.",c:"e",g:"isd"},
+  {u:"https://www.edge.org/responses",t:"Edge Annual Question",d:"Each year, one big question — hundreds of the world's leading scientists answer it. A remarkable intellectual record.",c:"e",g:"tds"},
+  {u:"https://openculture.com",t:"Open Culture",d:"Free university courses, audiobooks, films, and ebooks from the world's best educators. A treasure chest on the open web.",c:"e",g:"tad"},
+  {u:"https://longform.org",t:"Longform",d:"Curated long-form journalism. Think of it as a brilliant friend who reads everything and sends you only the gems.",c:"e",g:"td"},
+  {u:"https://www.cabinetmagazine.org",t:"Cabinet Magazine",d:"A quarterly journal that specializes in subjects no one else would think to write about. Reliably surprising.",c:"e",g:"td"},
+  {u:"https://www.laphamquarterly.org",t:"Lapham's Quarterly",d:"Primary sources from across history arranged by theme. What did Montaigne and Stalin both think about war?",c:"e",g:"tdb"},
+  {u:"https://www.theparisreview.org/interviews",t:"Paris Review Interviews",d:"The Art of Fiction series: famous writers explaining how they actually write. Decades of them, all free online.",c:"e",g:"td"},
+  {u:"https://www.philosophyexperiments.com",t:"Philosophy Experiments",d:"Take famous thought experiments as actual tests. The trolley problem, personal identity, the veil of ignorance.",c:"e",g:"ipt"},
+  {u:"https://www.lesswrong.com",t:"LessWrong",d:"The canonical hub for rationality and AI safety thinking. Dense, rigorous, and sometimes genuinely life-changing.",c:"e",g:"tds"},
+  {u:"https://kottke.org",t:"Kottke.org",d:"Jason Kottke has linked to the best stuff on the web since 1998. The original web log, still one of the best.",c:"e",g:"td"},
+  {u:"https://www.metafilter.com",t:"MetaFilter",d:"Community weblog since 1999. Real humans filtering the web, one link at a time. The conversation is the point.",c:"e",g:"td"},
+  {u:"https://electricliterature.com",t:"Electric Literature",d:"Literary fiction, essays, and criticism for readers who take story seriously.",c:"e",g:"td"},
+  {u:"https://calmcode.io",t:"Calmcode",d:"Short, calm video tutorials on programming tools. No hype, no ads, no filler. Just the thing you need to know.",c:"e",g:"sd"},
+  {u:"https://psyche.co",t:"Psyche",d:"Aeon's sister publication on psychology, human flourishing, and ideas for a well-lived life. Unusually thoughtful.",c:"e",g:"td"},
+  {u:"https://news.ycombinator.com/best",t:"Hacker News: Best",d:"The highest-signal submissions from HN's history. A practical way to mine internet classics.",c:"e",g:"tdp"},
+  {u:"https://www.paulgraham.com",t:"Paul Graham Essays",d:"Foundational startup and writing essays. Uneven in places, often clarifying.",c:"e",g:"td"},
+  {u:"https://www.gapminder.org/tools",t:"Gapminder Tools",d:"Interactive global-development data from Hans Rosling's team. Explore trend lines by country.",c:"e",g:"ivs"},
+  {u:"https://www.wolframalpha.com",t:"Wolfram|Alpha",d:"Computational knowledge engine for math, science, and statistics. Ask hard questions directly.",c:"e",g:"iskd"},
+  {u:"https://www.scientificamerican.com",t:"Scientific American",d:"America's oldest continuously published science magazine. Reliable, well-edited, with freely accessible articles.",c:"e",g:"tsd"},
+
+  // ===== Creative Tools =====
+  {u:"https://weavesilk.com",t:"Silk",d:"Symmetric drawing toy. Make impossibly beautiful things in 30 seconds.",c:"c",g:"ivbk"},
+  {u:"https://patatap.com",t:"Patatap",d:"Tap any key. Sounds and shapes appear. Use both hands. Lose ten minutes.",c:"c",g:"ivapk"},
+  {u:"https://musiclab.chromeexperiments.com",t:"Chrome Music Lab",d:"Free in-browser music experiments. Song Maker is a gateway drug to music theory.",c:"c",g:"iakp"},
+  {u:"https://inspirobot.me",t:"Inspirobot",d:"An AI that generates uncannily plausible motivational posters. Often unhinged.",c:"c",g:"pw"},
+  {u:"https://typedrummer.com",t:"TypeDrummer",d:"Type to make a beat. Each letter is a different drum hit.",c:"c",g:"iapk"},
+  {u:"https://www.piskelapp.com",t:"Piskel",d:"Free, browser-based pixel art and sprite editor. Surprisingly capable.",c:"c",g:"ik"},
+  {u:"https://sfxr.me",t:"sfxr / Bfxr",d:"Generate retro video game sound effects in seconds. The chiptune classic.",c:"c",g:"akn"},
+  {u:"https://noisli.com",t:"Noisli",d:"Mix rain, café chatter, train rumble, and fire crackle into your perfect work soundtrack.",c:"c",g:"amk"},
+  {u:"https://thispersondoesnotexist.com",t:"This Person Does Not Exist",d:"Refresh for a new AI-hallucinated face. The original 'wait, this is fake?' moment.",c:"c",g:"vw"},
+  {u:"https://quickdraw.withgoogle.com",t:"Quick, Draw!",d:"An AI tries to guess what you're doodling. You're contributing to its training set.",c:"c",g:"ip"},
+  {u:"https://experiments.withgoogle.com",t:"Google Experiments",d:"A gallery of WebGL, AI, and audio playthings from Google's labs.",c:"c",g:"ipd"},
+  {u:"https://sandspiel.club",t:"Sandspiel",d:"Falling-sand simulator with fire, water, plants, and acid. Play god in a Petri dish.",c:"c",g:"ivpm"},
+  {u:"https://www.shadertoy.com",t:"Shadertoy",d:"Real-time GPU shader art written in browser. Some of these are mind-melting.",c:"c",g:"vbk"},
+  {u:"https://patorjk.com/software/taag",t:"ASCII Art Generator",d:"Convert text to fancy ASCII banners. Every README writer's secret weapon.",c:"c",g:"knp"},
+  {u:"https://monkeytype.com",t:"Monkeytype",d:"The most well-designed typing speed test on the web. Surprisingly addictive.",c:"c",g:"ip"},
+  {u:"https://chronophoto.app",t:"Chronophoto",d:"Look at a photo, guess the year it was taken. Surprisingly hard, surprisingly satisfying.",c:"c",g:"ip"},
+  {u:"https://www.desmos.com/calculator",t:"Desmos Graphing Calculator",d:"The graphing calculator your high-school self deserved. Make art with equations.",c:"c",g:"iks"},
+  {u:"https://mathigon.org",t:"Mathigon",d:"Interactive math textbooks that actually teach. The future of the genre.",c:"c",g:"isd"},
+  {u:"https://oimo.io",t:"OIMO physics toys",d:"Hyper-clean physics toys by Saharu Kanasashi. Try them all.",c:"c",g:"ipb"},
+  {u:"https://www.figma.com/community",t:"Figma Community",d:"Free design files to remix. See how good designers actually build things.",c:"c",g:"kd"},
+  {u:"https://excalidraw.com",t:"Excalidraw",d:"Hand-drawn-feeling whiteboard for sketching diagrams and ideas. Endorphins per click.",c:"c",g:"ki"},
+  {u:"https://www.tldraw.com",t:"tldraw",d:"Infinite canvas with a beautiful gesture model. Drawing app as design statement.",c:"c",g:"kib"},
+  {u:"https://www.beepbox.co",t:"BeepBox",d:"In-browser chiptune sequencer. Dead simple, surprisingly deep.",c:"c",g:"kia"},
+  {u:"https://onlinesequencer.net",t:"Online Sequencer",d:"Piano-roll music sequencer in your browser. Browse a huge community library too.",c:"c",g:"kia"},
+  {u:"https://apps.musedlab.org/groovepizza/",t:"Groove Pizza",d:"NYU's drum machine where rhythms become geometric shapes. Music theory through pizza.",c:"c",g:"kiap"},
+  {u:"https://musicforprogramming.net",t:"Music for Programming",d:"Long, unobtrusive ambient mixes designed for deep work. Cult-favorite.",c:"c",g:"am"},
+  {u:"https://mynoise.net",t:"myNoise",d:"The deepest background-noise generator on the web. Customizable to your ear.",c:"c",g:"amk"},
+  {u:"https://coffitivity.com",t:"Coffitivity",d:"Just the ambient sound of a café. The minimum-viable focus tool.",c:"c",g:"am"},
+  {u:"https://editor.p5js.org",t:"p5.js Editor",d:"Code creative sketches in JavaScript. The easiest on-ramp to creative coding.",c:"c",g:"kiv"},
+  {u:"https://threejs.org/examples/",t:"Three.js Examples",d:"Hundreds of WebGL demos. Each one is a small lesson in what's possible in a browser.",c:"c",g:"vbk"},
+  {u:"https://www.pixilart.com",t:"Pixilart",d:"Browser pixel art editor with a huge community gallery to learn from.",c:"c",g:"ki"},
+  {u:"https://kenney.nl",t:"Kenney Game Assets",d:"Thousands of free, beautifully made game assets. Used in countless indie games.",c:"c",g:"kn"},
+  {u:"https://inconvergent.net",t:"Inconvergent",d:"Anders Hoff's generative art experiments and code. Quiet, mathematical, beautiful.",c:"c",g:"vbk"},
+  {u:"https://brush.ninja",t:"Brush Ninja",d:"Make animated GIFs and gifs frame by frame. Charmingly simple.",c:"c",g:"kip"},
+  {u:"https://flexboxfroggy.com",t:"Flexbox Froggy",d:"Learn CSS flexbox by helping frogs find their lily pads. The genre-defining game.",c:"c",g:"ipk"},
+  {u:"https://cssbattle.dev",t:"CSS Battle",d:"Recreate target images using as little CSS as possible. Code golf for designers.",c:"c",g:"ipk"},
+  {u:"https://animista.net",t:"Animista",d:"Pick a CSS animation, tweak the parameters, copy the code. Designer caffeine.",c:"c",g:"kiv"},
+  {u:"https://coolors.co",t:"Coolors",d:"Spacebar your way to a color palette. The fastest palette generator on the web.",c:"c",g:"kb"},
+  {u:"https://fontjoy.com",t:"Font Joy",d:"AI-generated font pairings. Roll until something feels right.",c:"c",g:"kb"},
+  {u:"https://heropatterns.com",t:"Hero Patterns",d:"Free, repeatable SVG background patterns. Quietly everywhere.",c:"c",g:"kv"},
+  {u:"https://audiomass.co",t:"AudioMass",d:"A surprisingly capable audio editor that runs entirely in your browser.",c:"c",g:"ka"},
+  {u:"https://learningmusic.ableton.com",t:"Learning Music (Ableton)",d:"An interactive primer on music theory using the actual interactivity of music.",c:"c",g:"iasd"},
+  {u:"https://learningsynths.ableton.com",t:"Learning Synths (Ableton)",d:"Same idea — for synthesizers. Twiddle real knobs, hear what they do.",c:"c",g:"ias"},
+  {u:"https://www.blockbench.net",t:"Blockbench",d:"Browser 3D model editor that started for Minecraft, now used widely. Free and powerful.",c:"c",g:"ki"},
+  {u:"https://glslsandbox.com",t:"GLSL Sandbox",d:"Live-code GPU shaders in the browser. Browse thousands of others' creations.",c:"c",g:"kvb"},
+  {u:"https://type.method.ac",t:"The Type Game",d:"Train your eye for kerning. After 10 minutes, you can never unsee bad spacing.",c:"c",g:"ipk"},
+  {u:"https://bezier.method.ac",t:"The Bézier Game",d:"Learn to use the pen tool by tracing shapes. Designers swear by this.",c:"c",g:"ipk"},
+  {u:"https://www.khroma.co",t:"Khroma",d:"Train an AI on color combinations you like, then generate endless palettes in your taste.",c:"c",g:"kb"},
+  {u:"https://p5js.org/examples/",t:"p5.js Examples",d:"A canonical gallery of creative coding sketches. Read the code, modify, learn.",c:"c",g:"ivk"},
+  {u:"https://photopea.com",t:"Photopea",d:"A full Photoshop-like editor in your browser. Layers, masks, PSDs, no install.",c:"c",g:"kivd"},
+  {u:"https://jspaint.app",t:"JS Paint",d:"MS Paint lovingly recreated for the web, with modern file support and pure nostalgia.",c:"c",g:"kinp"},
+  {u:"https://kleki.com",t:"Kleki",d:"Fast, no-signup painting app for sketching and concepting. Ideal for quick visual ideas.",c:"c",g:"kib"},
+  {u:"https://squoosh.app",t:"Squoosh",d:"Google's in-browser image optimizer. Compare codecs live and export tiny files.",c:"c",g:"kiv"},
+  {u:"https://codepen.io",t:"CodePen",d:"Front-end playground and gallery. Fork, tweak, and learn from thousands of tiny experiments.",c:"c",g:"kivd"},
+  {u:"https://app.infinitejukebox.playlistmachinery.com",t:"The Infinite Jukebox",d:"Upload a song. Hear it loop forever in always-different ways. Genuinely magical.",c:"c",g:"aib"},
+
+  // ===== Archives & Wikis =====
+  {u:"https://archive.org",t:"The Internet Archive",d:"The library of the internet. Books, software, films, music, websites — for free, forever.",c:"a",g:"dtn"},
+  {u:"https://web.archive.org",t:"The Wayback Machine",d:"See any website as it was on any date. The internet's memory.",c:"a",g:"nd"},
+  {u:"https://www.cameronsworld.net",t:"Cameron's World",d:"A loving collage of the GeoCities-era web. Visit it with sound on.",c:"a",g:"nvb"},
+  {u:"https://gifcities.org",t:"GifCities",d:"Search engine for animated GIFs scraped from the dead GeoCities. Pure 1999.",c:"a",g:"nv"},
+  {u:"https://textfiles.com",t:"textfiles.com",d:"Jason Scott's archive of BBS-era text files. Phreaking, anarchy, ASCII art, raw nostalgia.",c:"a",g:"ntd"},
+  {u:"https://www.webdesignmuseum.org",t:"Web Design Museum",d:"Screenshots of how famous websites looked in 1996, 2003, 2010. A graveyard of trends.",c:"a",g:"nv"},
+  {u:"https://www.folklore.org",t:"Folklore.org",d:"Andy Hertzfeld's stories from inside the original Macintosh team. Required reading.",c:"a",g:"ntd"},
+  {u:"https://macintoshgarden.org",t:"Macintosh Garden",d:"Abandonware archive for vintage Mac software. Run System 7 in your browser.",c:"a",g:"n"},
+  {u:"https://publicdomainreview.org",t:"The Public Domain Review",d:"Curated tour of out-of-copyright art, books, films, and ephemera. Beautifully presented.",c:"a",g:"vtbd"},
+  {u:"https://www.davidrumsey.com",t:"David Rumsey Map Collection",d:"Tens of thousands of historical maps, all free, zoomable to absurd resolution.",c:"a",g:"vbd"},
+  {u:"https://monoskop.org",t:"Monoskop",d:"A wiki for the arts, media, and humanities. Avant-garde rabbit hole.",c:"a",g:"td"},
+  {u:"https://www.theoldnet.com",t:"The Old Net",d:"Browse the modern web through a rendering of an old browser. Surprisingly usable.",c:"a",g:"np"},
+  {u:"https://rarehistoricalphotos.com",t:"Rare Historical Photos",d:"Photos with stories. Photos that change what you thought you knew.",c:"a",g:"vdt"},
+  {u:"https://images.nasa.gov",t:"NASA Image Library",d:"Every NASA photo, ever. Search 'pluto' and lose an hour.",c:"a",g:"vbs"},
+  {u:"https://www.mapcrunch.com",t:"MapCrunch",d:"Random Street View location, anywhere on Earth. Travel without leaving the chair.",c:"a",g:"vp"},
+  {u:"https://geocities.ws",t:"GeoCities Mirror",d:"Resurrected GeoCities pages. Under-construction signs and all.",c:"a",g:"n"},
+  {u:"https://www.metmuseum.org/art/collection",t:"The Met Open Access",d:"Half a million artworks, all free to use. Browse like a curator.",c:"a",g:"vbd"},
+  {u:"https://archive.org/details/internetarcade",t:"Internet Arcade",d:"Hundreds of arcade games playable in your browser. Right now. For free.",c:"a",g:"inp"},
+  {u:"https://www.oldgamesfinder.com",t:"Old Games Finder",d:"Search for and play in-browser versions of vintage PC games.",c:"a",g:"in"},
+  {u:"https://standardebooks.org",t:"Standard Ebooks",d:"Public domain classics, beautifully typeset and formatted. Free.",c:"a",g:"tdb"},
+  {u:"https://www.gutenberg.org",t:"Project Gutenberg",d:"70,000+ free public domain ebooks. The original library of the open web.",c:"a",g:"td"},
+  {u:"https://librivox.org",t:"LibriVox",d:"Volunteers reading public domain books aloud. Free audiobooks of the classics.",c:"a",g:"atd"},
+  {u:"https://gallica.bnf.fr",t:"Gallica (BnF)",d:"The French national library's digital collection. Maps, manuscripts, lithographs, posters.",c:"a",g:"vtd"},
+  {u:"https://digitalcollections.nypl.org",t:"NYPL Digital Collections",d:"Almost a million digitized items from the New York Public Library.",c:"a",g:"vd"},
+  {u:"https://www.europeana.eu",t:"Europeana",d:"Aggregator of digitized cultural heritage from across Europe — millions of works.",c:"a",g:"vtd"},
+  {u:"https://www.artic.edu/collection",t:"Art Institute of Chicago",d:"Tens of thousands of artworks, free under CC0. Hopper, Hokusai, the lot.",c:"a",g:"vbd"},
+  {u:"https://www.cooperhewitt.org",t:"Cooper Hewitt",d:"The Smithsonian's design museum. Browse 200,000 objects of human ingenuity.",c:"a",g:"vb"},
+  {u:"https://www.biodiversitylibrary.org",t:"Biodiversity Heritage Library",d:"Centuries of natural history books and illustrations. Audubon-level beautiful.",c:"a",g:"vsd"},
+  {u:"https://chroniclingamerica.loc.gov",t:"Chronicling America",d:"Searchable archive of historic American newspapers from the LoC. Time machine.",c:"a",g:"ntd"},
+  {u:"https://archive.org/details/prelinger",t:"Prelinger Archives",d:"Industrial, educational, and amateur films from the 20th century. Surreal Americana.",c:"a",g:"vnd"},
+  {u:"https://www.discogs.com",t:"Discogs",d:"The encyclopedia of recorded music. Every release, every pressing, every variant.",c:"a",g:"d"},
+  {u:"https://www.whosampled.com",t:"WhoSampled",d:"The sample-spotting database. See how every song is built from earlier songs.",c:"a",g:"ad"},
+  {u:"https://everynoise.com",t:"Every Noise at Once",d:"A scatterplot of literally every music genre Spotify recognizes. Click to listen.",c:"a",g:"adp"},
+  {u:"https://musicmap.info",t:"Musicmap",d:"A genealogy tree of popular music genres. Hand-drawn, hand-curated, gorgeous.",c:"a",g:"avd"},
+  {u:"https://radio.garden",t:"Radio Garden",d:"Spin a globe, drop the needle on any city, hear what's on the radio there now.",c:"a",g:"iabd"},
+  {u:"https://www.sosbrutalism.org",t:"SOS Brutalism",d:"An archive and advocacy site for endangered Brutalist architecture worldwide.",c:"a",g:"vd"},
+  {u:"https://accidentallywesanderson.com",t:"Accidentally Wes Anderson",d:"Real places that look like Wes Anderson sets. Submitted by readers, perfectly framed.",c:"a",g:"vb"},
+  {u:"https://www.isfdb.org",t:"Internet Speculative Fiction Database",d:"The exhaustive bibliography of sci-fi and fantasy. Every story, every cover, every edition.",c:"a",g:"dt"},
+  {u:"https://www.vam.ac.uk",t:"V&A Museum",d:"London's museum of art and design. Online collection is enormous and beautifully organized.",c:"a",g:"vbd"},
+  {u:"https://www.moma.org/collection",t:"MoMA Collection",d:"Modern art history, browsable. The full collection online with high-res images.",c:"a",g:"vbd"},
+  {u:"https://www.loc.gov",t:"Library of Congress",d:"The largest library in the world, online. Photos, films, sheet music, manuscripts, all of it.",c:"a",g:"dtn"},
+  {u:"https://www.loc.gov/collections/national-jukebox/",t:"National Jukebox",d:"Listen to thousands of recordings from the dawn of recorded sound (1900–1925).",c:"a",g:"and"},
+  {u:"https://www.britishmuseum.org/collection",t:"British Museum Collection",d:"Six million objects spanning human history. Search 'Rosetta' to start.",c:"a",g:"vd"},
+  {u:"https://en.wikipedia.org/wiki/Wikipedia:Featured_articles",t:"Wikipedia: Featured Articles",d:"The 6,000 best articles on Wikipedia, hand-vetted. The deep end of the encyclopedia.",c:"a",g:"td"},
+  {u:"https://archive.org/details/oldtimeradio",t:"Old Time Radio Archive",d:"Thousands of free recordings of pre-television radio drama. The lost format.",c:"a",g:"and"},
+  {u:"https://www.dafont.com",t:"DaFont",d:"Free fonts since 2000. Designers' guilty afternoon pleasure.",c:"a",g:"kn"},
+  {u:"https://fontsinuse.com",t:"Fonts In Use",d:"A database of typography in the wild. Beautiful, dorky, exhaustive.",c:"a",g:"vbd"},
+  {u:"https://www.aiga.org/design-archives",t:"AIGA Design Archives",d:"Decades of award-winning graphic design. The history of the field, browseable.",c:"a",g:"vbdn"},
+  {u:"https://defacto2.net",t:"Defacto2",d:"Archive of the early-90s PC scene — cracktros, demos, ANSI art, scene history.",c:"a",g:"nvd"},
+  {u:"https://16colo.rs",t:"16colo.rs",d:"The largest archive of ANSI art on the web. Wonderful obscure subculture.",c:"a",g:"nvk"},
+  {u:"https://www.mobygames.com",t:"MobyGames",d:"The IMDB of video games. Every game, every credit, every screenshot, since the 70s.",c:"a",g:"nd"},
+  {u:"https://archive.org/details/softwarelibrary_msdos",t:"MS-DOS Game Library",d:"Thousands of MS-DOS games playable instantly in your browser. Lost weekends await.",c:"a",g:"inp"},
+  {u:"https://www.nga.gov",t:"National Gallery of Art",d:"Washington's collection, online. Strong on European old masters and American art.",c:"a",g:"vbd"},
+  {u:"https://dp.la",t:"Digital Public Library of America",d:"A federated portal into libraries, archives, and museums across the U.S.",c:"a",g:"vtd"},
+  {u:"https://trove.nla.gov.au",t:"Trove",d:"Australia's national discovery platform for newspapers, photos, maps, and oral histories.",c:"a",g:"tdn"},
+  {u:"https://www.si.edu/openaccess",t:"Smithsonian Open Access",d:"Millions of Smithsonian 2D and 3D assets released for free reuse and exploration.",c:"a",g:"vbd"},
+  {u:"https://commons.wikimedia.org/wiki/Special:Random",t:"Wikimedia Commons: Random",d:"Jump to a random media file from one of the largest open image archives on earth.",c:"a",g:"vpd"},
+  {u:"https://www.hathitrust.org",t:"HathiTrust Digital Library",d:"A massive research-library consortium with millions of digitized volumes.",c:"a",g:"td"},
+  {u:"https://www.oldbookillustrations.com",t:"Old Book Illustrations",d:"Curated public-domain engravings and illustrations, ready for reuse in modern projects.",c:"a",g:"vbn"},
+  {u:"https://www.archives.gov",t:"US National Archives",d:"Founding documents, presidential papers, military records — democracy's paperwork.",c:"a",g:"td"}
+];
+
+// ----- State -----
+let activeFilters = new Set(["w", "e", "c", "a"]);
+let currentSite = null;
+let history = [];
+let bookmarks = [];
+let weights = {}; // tag -> learned weight
+let ratings = {}; // url -> "up" | "down"
+let boostTarget = null; // {tags: "iwp"} for next stumble only
+
+// Load persistence
+try {
+  const b = localStorage.getItem("stumble_v2_bookmarks"); if (b) bookmarks = JSON.parse(b);
+  const h = localStorage.getItem("stumble_v2_history"); if (h) history = JSON.parse(h);
+  const f = localStorage.getItem("stumble_v2_filters"); if (f) activeFilters = new Set(JSON.parse(f));
+  const w = localStorage.getItem("stumble_v2_weights"); if (w) weights = JSON.parse(w);
+  const r = localStorage.getItem("stumble_v2_ratings"); if (r) ratings = JSON.parse(r);
+} catch(e) {}
+
+if (!(activeFilters instanceof Set)) activeFilters = new Set(Object.keys(CATEGORIES));
+activeFilters = new Set([...activeFilters].filter(cat => Object.prototype.hasOwnProperty.call(CATEGORIES, cat)));
+if (activeFilters.size === 0) activeFilters = new Set(Object.keys(CATEGORIES));
+bookmarks = Array.isArray(bookmarks)
+  ? bookmarks.filter(b => b && typeof b.url === "string" && b.url)
+  : [];
+history = Array.isArray(history)
+  ? history.filter(h => h && typeof h.url === "string" && h.url).slice(0, 50)
+  : [];
+weights = (weights && typeof weights === "object") ? weights : {};
+ratings = (ratings && typeof ratings === "object") ? ratings : {};
+for (const key of Object.keys(ratings)) {
+  if (!key || (ratings[key] !== "up" && ratings[key] !== "down")) {
+    delete ratings[key];
+  }
+}
+
+function persist() {
+  try {
+    localStorage.setItem("stumble_v2_bookmarks", JSON.stringify(bookmarks));
+    localStorage.setItem("stumble_v2_history", JSON.stringify(history.slice(0, 50)));
+    localStorage.setItem("stumble_v2_filters", JSON.stringify([...activeFilters]));
+    localStorage.setItem("stumble_v2_weights", JSON.stringify(weights));
+    localStorage.setItem("stumble_v2_ratings", JSON.stringify(ratings));
+  } catch(e) {}
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+}
+
+function tagsOf(site) { return site.g.split(""); }
+function tagName(letter) { return TAGS[letter] || letter; }
+
+// ----- Learning math -----
+function applyDelta(site, delta) {
+  if (delta === 0) return;
+  for (const tag of tagsOf(site)) {
+    weights[tag] = (weights[tag] || 0) + delta;
+  }
+}
+
+function setRating(site, newRating) {
+  const old = ratings[site.u] || null;
+  if (old === newRating) {
+    // toggle off
+    const oldDelta = old === "up" ? 1 : old === "down" ? -1 : 0;
+    applyDelta(site, -oldDelta);
+    delete ratings[site.u];
+  } else {
+    const oldDelta = old === "up" ? 1 : old === "down" ? -1 : 0;
+    const newDelta = newRating === "up" ? 1 : newRating === "down" ? -1 : 0;
+    applyDelta(site, newDelta - oldDelta);
+    ratings[site.u] = newRating;
+  }
+  persist();
+  renderCard();
+  renderTaste();
+}
+
+function toggleBookmark(site) {
+  if (isBookmarked(site.u)) {
+    bookmarks = bookmarks.filter(b => b.url !== site.u);
+    applyDelta(site, -2);
+  } else {
+    bookmarks.unshift({ url: site.u, title: site.t, cat: site.c, g: site.g });
+    applyDelta(site, 2);
+  }
+  persist();
+  renderCard();
+  renderBookmarks();
+  renderTaste();
+}
+
+function isBookmarked(url) { return bookmarks.some(b => b.url === url); }
+
+// Score a site: sum of its tag weights, plus optional boost overlap.
+const TEMPERATURE = 1.2;
+function scoreSite(site) {
+  let score = 0;
+  for (const tag of tagsOf(site)) {
+    score += weights[tag] || 0;
+  }
+  if (boostTarget) {
+    const targetSet = new Set(boostTarget.split(""));
+    let overlap = 0;
+    for (const tag of tagsOf(site)) {
+      if (targetSet.has(tag)) overlap++;
+    }
+    score += overlap * 6;
+  }
+  return score;
+}
+
+let recentlySeen = [];
+
+function stumble() {
+  const pool = SITES.filter(s => activeFilters.has(s.c));
+  if (pool.length === 0) return;
+
+  const avoidCount = Math.min(10, pool.length - 1);
+  const avoidSet = new Set(recentlySeen.slice(-avoidCount).map(s => s.u));
+  let candidates = pool.filter(s => !avoidSet.has(s.u));
+  if (candidates.length === 0) candidates = pool;
+
+  // Softmax sampling
+  const scores = candidates.map(s => scoreSite(s));
+  const maxScore = Math.max(...scores);
+  const exps = scores.map(s => Math.exp((s - maxScore) / TEMPERATURE));
+  const total = exps.reduce((a, b) => a + b, 0);
+  let r = Math.random() * total;
+  let next = candidates[0];
+  for (let i = 0; i < candidates.length; i++) {
+    r -= exps[i];
+    if (r <= 0) { next = candidates[i]; break; }
+  }
+
+  // Clear boost after use
+  boostTarget = null;
+  document.getElementById("boostBadge").style.display = "none";
+
+  recentlySeen.push(next);
+  if (recentlySeen.length > 30) recentlySeen.shift();
+  currentSite = next;
+  history.unshift({ url: next.u, title: next.t, t: Date.now() });
+  if (history.length > 50) history.pop();
+  persist();
+  renderCard();
+  renderStats();
+  renderHistory();
+  try { window.open(next.u, "_blank", "noopener"); } catch(e) {}
+}
+
+function moreLikeThis() {
+  if (!currentSite) return;
+  boostTarget = currentSite.g;
+  document.getElementById("boostBadge").style.display = "inline-block";
+  // Auto-stumble on next click; don't fire immediately so user can see the badge
+}
+
+// ----- Rendering -----
+function renderFilters() {
+  const el = document.getElementById("filters");
+  el.innerHTML = "";
+  Object.entries(CATEGORIES).forEach(([key, name]) => {
+    const chip = document.createElement("button");
+    chip.className = "chip" + (activeFilters.has(key) ? " active" : "");
+    chip.textContent = name;
+    chip.onclick = () => {
+      if (activeFilters.has(key)) { if (activeFilters.size > 1) activeFilters.delete(key); }
+      else activeFilters.add(key);
+      renderFilters();
+      renderStats();
+      persist();
+    };
+    el.appendChild(chip);
+  });
+}
+
+function renderStats() {
+  const pool = SITES.filter(s => activeFilters.has(s.c)).length;
+  const stumbled = history.length;
+  document.getElementById("stats").textContent = `${pool} sites in pool · ${SITES.length} total · ${stumbled} stumbled`;
+}
+
+function renderCard() {
+  const el = document.getElementById("cardArea");
+  if (!currentSite) {
+    el.innerHTML = `<div class="empty">Hit Stumble to begin your walk.</div>`;
+    return;
+  }
+  const s = currentSite;
+  const bm = isBookmarked(s.u);
+  const myRating = ratings[s.u] || null;
+  const tagPills = tagsOf(s).map(t => `<span class="tag-pill">${tagName(t)}</span>`).join("");
+  el.innerHTML = `
+    <div class="card">
+      <span class="cat-tag cat-${s.c}">${CATEGORIES[s.c]}</span>
+      <h2>${escapeHtml(s.t)}</h2>
+      <div class="url">${escapeHtml(s.u)}</div>
+      <div class="desc">${escapeHtml(s.d)}</div>
+      <div class="tag-pills">${tagPills}</div>
+      <div class="card-actions">
+        <a class="btn btn-primary" href="${s.u}" target="_blank" rel="noopener noreferrer">Visit ↗</a>
+        <button class="btn btn-icon ${myRating==="up" ? 'active-up' : ''}" id="upBtn" title="Like — train preferences">👍</button>
+        <button class="btn btn-icon ${myRating==="down" ? 'active-down' : ''}" id="downBtn" title="Dislike — train against this">👎</button>
+        <button class="btn ${bm ? 'bookmarked' : ''}" id="bmBtn">${bm ? '★ Saved' : '☆ Save'}</button>
+        <button class="btn btn-boost" id="moreBtn" title="Next stumble will heavily favor sites with these tags">★ More like this</button>
+      </div>
+    </div>
+  `;
+  document.getElementById("upBtn").onclick = () => setRating(s, "up");
+  document.getElementById("downBtn").onclick = () => setRating(s, "down");
+  document.getElementById("bmBtn").onclick = () => toggleBookmark(s);
+  document.getElementById("moreBtn").onclick = moreLikeThis;
+}
+
+function renderBookmarks() {
+  const el = document.getElementById("bookmarks");
+  document.getElementById("bmCount").textContent = bookmarks.length ? `${bookmarks.length} saved` : "";
+  if (bookmarks.length === 0) {
+    el.innerHTML = `<div class="empty" style="padding:24px;">Hit ☆ Save on any card to bookmark it here.</div>`;
+    return;
+  }
+  el.innerHTML = bookmarks.map((b, i) => `
+    <div class="list-item">
+      <div class="list-info">
+        <a href="${b.url}" target="_blank" rel="noopener noreferrer">${escapeHtml(b.title)}</a>
+        <div class="b-url">${escapeHtml(b.url)}</div>
+      </div>
+      <button class="rm-btn" data-idx="${i}" title="Remove">×</button>
+    </div>
+  `).join("");
+  el.querySelectorAll(".rm-btn").forEach(btn => {
+    btn.onclick = () => {
+      const idx = parseInt(btn.dataset.idx);
+      const bk = bookmarks[idx];
+      if (bk && bk.g) {
+        // un-apply the +2 weight
+        const fakeSite = { url: bk.url, g: bk.g };
+        for (const t of bk.g.split("")) weights[t] = (weights[t] || 0) - 2;
+      }
+      bookmarks.splice(idx, 1);
+      persist();
+      renderBookmarks();
+      renderCard();
+      renderTaste();
+    };
+  });
+}
+
+function renderHistory() {
+  const el = document.getElementById("history");
+  if (history.length === 0) {
+    el.innerHTML = `<div class="empty" style="padding:12px;font-size:12px;">No stumbles yet.</div>`;
+    return;
+  }
+  el.innerHTML = history.slice(0, 20).map(h => `
+    <div class="list-item" style="padding:8px 12px;">
+      <div class="list-info">
+        <a href="${h.url}" target="_blank" rel="noopener noreferrer">${escapeHtml(h.title)}</a>
+      </div>
+    </div>
+  `).join("");
+}
+
+function renderTaste() {
+  const sorted = Object.entries(weights)
+    .map(([k, v]) => ({ tag: k, weight: v }))
+    .sort((a, b) => b.weight - a.weight);
+
+  const likes = sorted.filter(x => x.weight > 0).slice(0, 4);
+  const dislikes = sorted.filter(x => x.weight < 0).slice(-4).reverse();
+
+  const likeEl = document.getElementById("likeTags");
+  const dislikeEl = document.getElementById("dislikeTags");
+
+  likeEl.innerHTML = likes.length
+    ? likes.map(x => `<span class="taste-pill like">${tagName(x.tag)} <strong>+${x.weight}</strong></span>`).join("")
+    : `<span class="taste-pill neutral">No likes yet — hit 👍 on sites you enjoy</span>`;
+  dislikeEl.innerHTML = dislikes.length
+    ? dislikes.map(x => `<span class="taste-pill dislike">${tagName(x.tag)} <strong>${x.weight}</strong></span>`).join("")
+    : `<span class="taste-pill neutral">No dislikes yet</span>`;
+
+  const ratedCount = Object.keys(ratings).length;
+  const upCount = Object.values(ratings).filter(r => r === "up").length;
+  const downCount = ratedCount - upCount;
+  document.getElementById("ratingStat").textContent = `${upCount} ↑ · ${downCount} ↓ · ${bookmarks.length} ★`;
+}
+
+document.getElementById("stumbleBtn").onclick = stumble;
+document.getElementById("histToggle").onclick = (e) => {
+  const h = document.getElementById("history");
+  h.classList.toggle("open");
+  e.target.textContent = h.classList.contains("open") ? "hide history" : "show recent history";
+};
+document.getElementById("resetLearning").onclick = () => {
+  weights = {};
+  ratings = {};
+  boostTarget = null;
+  document.getElementById("boostBadge").style.display = "none";
+  persist();
+  renderCard();
+  renderTaste();
+};
+
+document.addEventListener("keydown", (e) => {
+  const tag = e.target.tagName;
+  if (e.code === "Space" && tag !== "INPUT" && tag !== "TEXTAREA" && tag !== "BUTTON") {
+    e.preventDefault();
+    stumble();
+  }
+});
+
+renderFilters();
+renderStats();
+renderCard();
+renderBookmarks();
+renderHistory();
+renderTaste();
+</script>
+</body>
+</html>
