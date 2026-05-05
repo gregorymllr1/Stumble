@@ -1,15 +1,15 @@
 <!DOCTYPE html>
 <script type="application/json" id="cowork-artifact-meta">
 {
-  "name": "Stumble",
+  "name": "Drift Along",
   "schemaVersion": 1,
-  "description": "A StumbleUpon-style discovery tool with 250+ hand-curated sites tagged across 12 attributes (interactive, visual, audio, text-heavy, nostalgic, weird, beautiful, scientific, playful, meditative, deep-dive, maker-tool). Thumbs up/down train per-tag weights that bias future stumbles via softmax sampling. 'More like this' gives a one-shot boost toward the current site's tags. Bookmarks, history, ratings, and learned taste persist via localStorage."
+  "description": "A serendipity-driven discovery tool with 320+ hand-curated sites tagged across 12 attributes (interactive, visual, audio, text-heavy, nostalgic, weird, beautiful, scientific, playful, meditative, deep-dive, maker-tool). Thumbs up/down train per-tag weights that bias future drifts via softmax sampling. 'More like this' gives a one-shot boost toward the current site's tags. Bookmarks, history, ratings, and learned taste persist via localStorage."
 }
 </script>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Stumble</title>
+<title>Drift Along</title>
 <style>
 :root { color-scheme: light; }
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -102,7 +102,7 @@ header { text-align: center; margin-bottom: 24px; }
 <body>
 <div class="container">
   <header>
-    <div class="logo">stumble<span class="dot">.</span></div>
+    <div class="logo">drift along<span class="dot">.</span></div>
     <div class="tagline">a hand-curated walk through the weirder, smarter web</div>
   </header>
 
@@ -110,7 +110,7 @@ header { text-align: center; margin-bottom: 24px; }
   <div class="stats" id="stats"></div>
 
   <div class="stumble-wrap">
-    <button class="stumble-btn" id="stumbleBtn">Stumble</button>
+    <button class="stumble-btn" id="stumbleBtn">Drift</button>
     <span class="boost-active" id="boostBadge" style="display:none;">★ More-like-this active</span>
     <div class="kbd-hint">or press <span class="kbd">space</span></div>
   </div>
@@ -235,6 +235,46 @@ const SITES = [
   {u:"https://typeracer.com",t:"TypeRacer",d:"Race other humans by typing passages from books and films. You'll learn your exact words-per-minute.",c:"w",g:"ip"},
   {u:"https://koalastothemax.com",t:"Koalas to the Max",d:"Mouse over the circles. They split and multiply. Keep going. Something emerges if you're patient.",c:"w",g:"ivmp"},
 
+  // ===== New: Micro-interactions & Absurdism =====
+  {u:"https://theboredbutton.com",t:"The Bored Button",d:"One click cures boredom. A randomized roulette of interactive toys and pointless web corners.",c:"w",g:"wp"},
+  {u:"https://isitchristmas.com",t:"Is It Christmas?",d:"Answers the only question that matters on 364 days of the year.",c:"w",g:"wp"},
+  {u:"https://longdogechallenge.com",t:"Long Doge Challenge",d:"An impossibly elongated Doge. Scroll down to collect 'wows.' A stamina test disguised as a meme.",c:"w",g:"wp"},
+  {u:"https://burymewithmymoney.com",t:"Bury Me With My Money",d:"Cascading cash, one repeated phrase, infinite loop. The most peaceful financial planning tool.",c:"w",g:"nawp"},
+  {u:"https://makeeverythingok.com",t:"Make Everything OK",d:"A single magic button. A loading bar. The assurance that everything is now OK. It keeps its promise.",c:"w",g:"imp"},
+  {u:"https://isitfridayet.com",t:"Is It Friday Yet?",d:"The most precise calendar you will ever need.",c:"w",g:"wp"},
+  {u:"https://patience.pieter.be",t:"Patience Is A Virtue",d:"A perpetual loading screen whose text gently mocks your willingness to wait for content that never arrives.",c:"w",g:"wp"},
+  {u:"https://clickclickclick.click",t:"Click Click Click",d:"Every cursor movement and click on the page is tracked and narrated in real time. Uncomfortably self-aware.",c:"w",g:"iwp"},
+  {u:"https://cornify.com",t:"Cornify",d:"A bookmarklet that injects sparkly unicorns and rainbows onto any webpage. Chaos at your fingertips.",c:"w",g:"wp"},
+  {u:"https://passweird.com",t:"Passweird",d:"Generates highly secure passwords that are deeply embarrassing to say out loud.",c:"w",g:"wp"},
+  {u:"https://ytmnd.com",t:"YTMND",d:"You're The Man Now Dog. Tiled GIFs, looping audio, and early-2000s kinetic text. A time capsule.",c:"w",g:"navpw"},
+  {u:"https://baconipsum.com",t:"Bacon Ipsum",d:"Lorem ipsum, but with meat. Every developer's favorite placeholder text generator.",c:"w",g:"wp"},
+  {u:"https://r33b.net",t:"r33b.net",d:"Hypnotic Hypnotoad tribute. Stare at the oscillating image. You will obey.",c:"w",g:"awp"},
+  {u:"https://vole.wtf",t:"VOLE.wtf",d:"A collection of polished browser micro-games and editorial absurdity. Maximum distraction, minimum regret.",c:"w",g:"ipw"},
+  {u:"https://thisman.org",t:"Ever Dream This Man?",d:"A 2009 internet myth about a face appearing in thousands of strangers' dreams worldwide. A fascinating hoax.",c:"w",g:"twp"},
+  {u:"https://screamintothevoid.com",t:"Scream Into The Void",d:"Type your frustrations, press the button, watch them vanish. No retention. Gone forever.",c:"w",g:"iwm"},
+  {u:"https://corgiorgys.com",t:"Corgi Orgy",d:"An endless scroll of animated corgis synchronized to relentless electronic music. Pure serotonin.",c:"w",g:"avpw"},
+  {u:"https://giphy.com/explore/weird",t:"GIPHY: Weird",d:"The strangest, most inexplicable looping GIFs the platform hosts. A rabbit hole with no floor.",c:"w",g:"vwp"},
+
+  // ===== New: Ambient & Meditative =====
+  {u:"https://asoftmurmur.com",t:"A Soft Murmur",d:"Mix rain, thunder, waves, and singing bowls into your own precise ambient soundscape. Features a meander mode.",c:"w",g:"amkm"},
+  {u:"https://thequietplaceproject.com",t:"The Quiet Place",d:"A 90-second guided pause from the noise of the internet. Gentle music, lowercase text, nothing to check.",c:"w",g:"amtm"},
+  {u:"https://thenicestplaceontheinter.net",t:"The Nicest Place on the Internet",d:"Strangers from around the world offering virtual hugs to the camera. Earnest and surprisingly effective.",c:"w",g:"vmbp"},
+  {u:"https://soundrown.com",t:"Soundrown",d:"Layer waves, rain, birds, coffee shop chatter, and fire into your own ambient background environment.",c:"w",g:"amkm"},
+  {u:"https://eunoia.world",t:"Eunoia",d:"A stunning catalog of untranslatable words from around the world. 'Mamihlapinatapai.' 'Saudade.' 'Hiraeth.'",c:"w",g:"tbm"},
+
+  // ===== New: Web Toys & Gamification =====
+  {u:"https://drawaperfectcircle.com",t:"Draw a Perfect Circle",d:"Deceptively simple. Mathematically humbling. Your score will make you question your motor skills.",c:"w",g:"ip"},
+  {u:"https://playingcards.io",t:"Playingcards.io",d:"A zero-rules virtual tabletop for card games. Move the cards exactly as you would real ones.",c:"w",g:"ipm"},
+  {u:"https://www.gnoosic.com",t:"Gnoosic",d:"Tell it three bands; it tells you music you've never heard that you'll love. Uncannily accurate.",c:"w",g:"aipd"},
+  {u:"https://time.is",t:"Time.is",d:"Atomic time for any location on Earth, accurate to the millisecond. A beautifully designed single-purpose site.",c:"w",g:"vsp"},
+  {u:"https://random.org",t:"Random.org",d:"True random numbers generated from atmospheric noise. Purer than your computer's built-in RNG.",c:"w",g:"isp"},
+  {u:"https://futureme.org",t:"FutureMe",d:"Write an email to your future self, scheduled for delivery years from now. People report it changes them.",c:"w",g:"tmp"},
+  {u:"https://themostdangerouswritingapp.com",t:"The Most Dangerous Writing App",d:"Stop typing for five seconds and everything you've written is permanently deleted. Shatters writer's block.",c:"w",g:"ipw"},
+  {u:"https://onemillioncheckboxes.com",t:"One Million Checkboxes",d:"A million checkboxes, shared live across all users. An accidental real-time social experiment.",c:"w",g:"iwps"},
+  {u:"https://notalwaysright.com",t:"Not Always Right",d:"True user-submitted stories of retail customer absurdity. Impossible people, captured forever.",c:"w",g:"twp"},
+  {u:"https://habitica.com",t:"Habitica",d:"Turn daily habits and chores into an 8-bit RPG quest. Surprisingly effective gamified self-improvement.",c:"w",g:"ip"},
+  {u:"https://tiii.me",t:"Tiii.me",d:"Calculate the total time you've spent watching television. The number will disturb you.",c:"w",g:"ipw"},
+
   // ===== Enlightening =====
   {u:"https://ciechanow.ski",t:"Bartosz Ciechanowski",d:"The most beautiful interactive explainers on the internet. Lenses, GPS, the inner ear.",c:"e",g:"ivsbd"},
   {u:"https://ncase.me",t:"Nicky Case",d:"Playable explorables about trust, fear, polygons, and how minds work. Education as game.",c:"e",g:"ips"},
@@ -313,6 +353,21 @@ const SITES = [
   {u:"https://www.wolframalpha.com",t:"Wolfram|Alpha",d:"Computational knowledge engine for math, science, and statistics. Ask hard questions directly.",c:"e",g:"iskd"},
   {u:"https://www.scientificamerican.com",t:"Scientific American",d:"America's oldest continuously published science magazine. Reliable, well-edited, with freely accessible articles.",c:"e",g:"tsd"},
 
+  // ===== New: Enlightening =====
+  {u:"https://informationisbeautiful.net",t:"Information Is Beautiful",d:"Complex global data transformed into stunning visual arguments. David McCandless's data studio.",c:"e",g:"vsd"},
+  {u:"https://neal.fun/internet-artifacts",t:"Internet Artifacts",d:"An interactive museum of pivotal web moments — the first email, the first tweet, the first viral GIF.",c:"e",g:"ind"},
+  {u:"https://everytimezone.com",t:"Every Time Zone",d:"A single elegant visual that makes global scheduling immediately obvious. Slide to find overlap.",c:"e",g:"ivsp"},
+  {u:"https://lettersofnote.com",t:"Letters of Note",d:"Fascinating letters from history — Einstein, Bowie, Beethoven, Nixon. Human voices across centuries.",c:"e",g:"tbd"},
+  {u:"https://theoatmeal.com",t:"The Oatmeal",d:"Matthew Inman's illustrated essays on mantis shrimp, grammar, cats, and the tragic story of Tesla.",c:"e",g:"tvpw"},
+  {u:"https://submarinecablemap.com",t:"Submarine Cable Map",d:"The physical infrastructure of the internet: hundreds of fiber-optic cables running across the ocean floor.",c:"e",g:"ivsd"},
+  {u:"https://flightradar24.com",t:"FlightRadar24",d:"Every commercial flight currently in the sky, tracked in real time. Hypnotic at scale.",c:"e",g:"ivs"},
+  {u:"https://internetlivestats.com",t:"Internet Live Stats",d:"Real-time counters: emails sent, searches made, sites hacked. Numbers spinning too fast to comprehend.",c:"e",g:"ivsp"},
+  {u:"https://zoom.earth",t:"Zoom Earth",d:"Near-real-time satellite imagery with live weather, wind, and wildfire overlays. Better than television.",c:"e",g:"ivs"},
+  {u:"https://libraryofbabel.info",t:"Library of Babel",d:"Every possible book — including one about your life — theoretically exists somewhere in this infinite algorithmic library.",c:"e",g:"tpwd"},
+  {u:"https://www3.nhk.or.jp/news/easy/",t:"NHK News Easy",d:"Japanese public news written for language learners. Simple kanji, gentle prose — a different window on the world.",c:"e",g:"tnd"},
+  {u:"https://gigazine.net",t:"Gigazine",d:"Japan's legendary tech and culture blog. Strange gadgets, unusual science, underground internet archaeology.",c:"e",g:"tvd"},
+  {u:"https://www.cupnoodles-museum.jp/en/",t:"Cup Noodles Museum",d:"Yokohama's museum dedicated to instant ramen: its invention, history, pop art, and the factory floor.",c:"e",g:"vbdp"},
+
   // ===== Creative Tools =====
   {u:"https://weavesilk.com",t:"Silk",d:"Symmetric drawing toy. Make impossibly beautiful things in 30 seconds.",c:"c",g:"ivbk"},
   {u:"https://patatap.com",t:"Patatap",d:"Tap any key. Sounds and shapes appear. Use both hands. Lose ten minutes.",c:"c",g:"ivapk"},
@@ -369,6 +424,24 @@ const SITES = [
   {u:"https://squoosh.app",t:"Squoosh",d:"Google's in-browser image optimizer. Compare codecs live and export tiny files.",c:"c",g:"kiv"},
   {u:"https://codepen.io",t:"CodePen",d:"Front-end playground and gallery. Fork, tweak, and learn from thousands of tiny experiments.",c:"c",g:"kivd"},
   {u:"https://app.infinitejukebox.playlistmachinery.com",t:"The Infinite Jukebox",d:"Upload a song. Hear it loop forever in always-different ways. Genuinely magical.",c:"c",g:"aib"},
+
+  // ===== New: Creative Tools =====
+  {u:"https://autodraw.com",t:"AutoDraw",d:"Draw messily; Google's AI instantly suggests what you meant. A surprisingly magical creative co-creation.",c:"c",g:"ivkp"},
+  {u:"https://thisissand.com",t:"This Is Sand",d:"Pour layers of colored sand into a glass container. A calming, oddly satisfying digital zen garden.",c:"c",g:"ivkm"},
+  {u:"https://incredibox.com",t:"Incredibox",d:"Drag beatbox styles onto animated characters to compose layered music tracks. Surprisingly musical.",c:"c",g:"iakp"},
+  {u:"https://paveldogreat.github.io/WebGL-Fluid-Simulation/",t:"WebGL Fluid Simulation",d:"Drag through colorful, impossibly smooth fluid dynamics. A hypnotic WebGPU technical showcase.",c:"c",g:"ivbm"},
+  {u:"https://shaderpark.com",t:"Shader Park",d:"A living gallery of interactive 3D shaders coded in-browser. Equal parts mathematical art and playground.",c:"c",g:"ivbk"},
+  {u:"https://vertexshaderart.com",t:"Vertex Shader Art",d:"Generative animations made purely from vertex mathematics. Technically astonishing and hypnotic.",c:"c",g:"ivbk"},
+  {u:"https://openprocessing.org",t:"OpenProcessing",d:"A social gallery of creative coding sketches in Processing and p5.js. Browse thousands of visual experiments.",c:"c",g:"ivkd"},
+  {u:"https://thebookofshaders.com",t:"The Book of Shaders",d:"An interactive, multilingual journey through fragment shaders. Live-editable code, immediate visual output.",c:"c",g:"ivskd"},
+  {u:"https://webglfundamentals.org",t:"WebGL Fundamentals",d:"The best tutorials for learning WebGL from scratch. Every concept visualized with working demos.",c:"c",g:"iskd"},
+  {u:"https://dwitter.net",t:"Dwitter",d:"Generative art coded in exactly 140 characters of JavaScript. Impossible things fit in impossibly small code.",c:"c",g:"ivkpw"},
+  {u:"https://turtletoy.net",t:"Turtletoy",d:"Plotter-friendly generative art via a Turtle graphics API. Algorithmic line drawings, beautifully minimal.",c:"c",g:"ivkb"},
+  {u:"https://freddiemeter.withgoogle.com",t:"Freddie Meter",d:"Sing into your mic; Google's AI rates how close your voice is to Freddie Mercury's legendary range.",c:"c",g:"iap"},
+  {u:"https://coolbackgrounds.io",t:"Cool Backgrounds",d:"Algorithmically generated wallpapers: gradients, particles, and geometry. Beautiful and immediately usable.",c:"c",g:"vbkm"},
+  {u:"https://csszengarden.com",t:"CSS Zen Garden",d:"One HTML file, hundreds of wildly different designs applied purely through CSS. The enduring proof of concept.",c:"c",g:"vbknd"},
+  {u:"https://identifont.com",t:"Identifont",d:"Identify any unknown typeface by answering precise geometric questions about specific letterforms.",c:"c",g:"ksd"},
+  {u:"https://myretrotvs.com",t:"MyRetroTVs",d:"Pick a decade, watch authentic era-accurate TV commercials and broadcasts on a virtual CRT television.",c:"c",g:"nap"},
 
   // ===== Archives & Wikis =====
   {u:"https://archive.org",t:"The Internet Archive",d:"The library of the internet. Books, software, films, music, websites — for free, forever.",c:"a",g:"dtn"},
@@ -430,7 +503,105 @@ const SITES = [
   {u:"https://commons.wikimedia.org/wiki/Special:Random",t:"Wikimedia Commons: Random",d:"Jump to a random media file from one of the largest open image archives on earth.",c:"a",g:"vpd"},
   {u:"https://www.hathitrust.org",t:"HathiTrust Digital Library",d:"A massive research-library consortium with millions of digitized volumes.",c:"a",g:"td"},
   {u:"https://www.oldbookillustrations.com",t:"Old Book Illustrations",d:"Curated public-domain engravings and illustrations, ready for reuse in modern projects.",c:"a",g:"vbn"},
-  {u:"https://www.archives.gov",t:"US National Archives",d:"Founding documents, presidential papers, military records — democracy's paperwork.",c:"a",g:"td"}
+  {u:"https://www.archives.gov",t:"US National Archives",d:"Founding documents, presidential papers, military records — democracy's paperwork.",c:"a",g:"td"},
+
+  // ===== New: Archives & Wikis =====
+  {u:"https://scp-wiki.wikidot.com",t:"SCP Foundation",d:"A crowdsourced fiction database of anomalies written in chillingly clinical bureaucratic prose. Endlessly deep.",c:"a",g:"twdp"},
+  {u:"https://spacejam.com/1996/",t:"Space Jam (1996)",d:"The original Space Jam promotional website, perfectly preserved in 1996 amber. A dial-up era artifact.",c:"a",g:"nvp"},
+  {u:"https://corru.observer",t:"corru.observer",d:"An immersive sci-fi narrative disguised as a futuristic alien OS interface. One of the most ambitious things on the web.",c:"a",g:"tvwbd"},
+  {u:"https://melonland.net",t:"MelonLand",d:"Hub of the web revival movement. Tutorials, community, and a principled rejection of algorithmic identity.",c:"a",g:"nptd"},
+  {u:"https://cinni.net",t:"cinni's dream home",d:"A cozy, pastel-colored corner of the old web. TamaNOTchi pets, Neapolitan palettes, and pure 2000s nostalgia.",c:"a",g:"nvbp"},
+  {u:"https://poptropica.com",t:"Poptropica",d:"The beloved Flash-era island RPG, now playable. A genuine nostalgia preservation effort.",c:"a",g:"inp"},
+  {u:"https://jurassicsystems.com",t:"Jurassic Systems",d:"The Unix terminal from Jurassic Park, faithfully recreated. 'Access main security grid.' It denies you.",c:"a",g:"nipw"},
+
+  // ===== From websitelist2 — Weird & Quirky =====
+  {u:"https://papertoilet.com",t:"Paper Toilet",d:"Scroll to unroll a virtual toilet paper roll all the way to the end. A 2006 single-serving classic.",c:"w",g:"ipw"},
+  {u:"https://alwaysjudgeabookbyitscover.com",t:"Always Judge a Book By Its Cover",d:"Real bizarre book titles with hilarious cover-based reviews. Comedy gold.",c:"w",g:"tpw"},
+  {u:"https://nyan.cat",t:"Nyan Cat",d:"The legendary flying Pop-Tart cat with rainbow trail. Still loops perfectly after 15+ years.",c:"w",g:"nawp"},
+  {u:"https://ismycomputeron.com",t:"Is My Computer On?",d:"The ultimate single-purpose site. It simply confirms your computer is on.",c:"w",g:"pw"},
+  {u:"https://fakeupdate.net",t:"Fake Update",d:"Choose a fake Windows, macOS, or Linux update screen for pranks. Timeless office humor.",c:"w",g:"ipw"},
+  {u:"https://zoomquilt2.com",t:"Zoomquilt 2",d:"The 2007 sequel to the original infinite-zoom painting. Darker, more surreal, equally hypnotic.",c:"w",g:"vbm"},
+  {u:"https://strobe.cool",t:"Strobe Illusion",d:"Stare at this optical illusion and hallucinate patterns. (Photosensitivity warning.)",c:"w",g:"iw"},
+  {u:"https://hooooooooo.com",t:"Hooooooooo",d:"A very long, satisfying 'hooooooo' with dancing figures. Spiritual cousin of Heeeeeeey.",c:"w",g:"pw"},
+  {u:"https://puginarug.com",t:"Pugi a Rug",d:"Zoom endlessly into a gloriously weird pugi dog rug. Hypnotic absurdity.",c:"w",g:"vwp"},
+  {u:"https://pixelsfighting.com",t:"Pixels Fighting",d:"Two pixels battle to the death. Click to choose the winner. Genius simplicity.",c:"w",g:"ipw"},
+  {u:"https://smashthewalls.com",t:"Smash the Walls",d:"Click to smash colorful walls. Oddly cathartic destruction toy.",c:"w",g:"ipw"},
+  {u:"https://www.anothersadtrombone.com",t:"Another Sad Trombone",d:"Instant sad trombone sound effect. Perfect comedic punctuation for any fail moment.",c:"w",g:"awp"},
+  {u:"https://hasthelargehadroncolliderdestroyedtheworldyet.com",t:"Has the LHC Destroyed the World?",d:"Reassuringly answers 'No' with the current date. Existential relief in one minimalist page.",c:"w",g:"pw"},
+  {u:"https://notdayoftheweek.com",t:"Not [Day] of the Week",d:"Tells you what day it is not. Minimalist calendar humor at its finest.",c:"w",g:"wp"},
+  {u:"https://weirdorconfusing.com",t:"Weird or Confusing",d:"Images that are either weird, confusing, or both. Endless visual puzzle gallery.",c:"w",g:"vwp"},
+  {u:"https://www.movenowthinklater.com",t:"Move Now Think Later",d:"Abstract interactive visuals that reward motion. A pure flow-state toy.",c:"w",g:"ivm"},
+  {u:"https://www.thezen.zone",t:"The Zen Zone",d:"Mouse-driven particle system. Instant calm delivered in browser form.",c:"w",g:"ivm"},
+  {u:"https://www.humanclock.com",t:"Human Clock",d:"Real people holding signs showing the exact current time. A charming analog-digital hybrid.",c:"w",g:"vwp"},
+  {u:"https://www.chrismckenzie.com",t:"Chris McKenzie",d:"Collection of clever interactive web experiments and digital oddities.",c:"w",g:"ivp"},
+  {u:"https://playtictactoe.org",t:"Play Tic-Tac-Toe",d:"Retro pixel-perfect Tic-Tac-Toe with personality from Neave.",c:"w",g:"ipw"},
+  {u:"https://www.trashloop.com",t:"Trash Loop",d:"Hypnotic looping animation of trash. Satisfying and weirdly compelling.",c:"w",g:"vwp"},
+  {u:"https://www.thesecretdoor.com",t:"The Secret Door",d:"Click ornate doors to teleport to random beautiful Street View locations worldwide.",c:"w",g:"ivp"},
+  {u:"https://www.patience-is-a-virtue.org",t:"Patience Is A Virtue (org)",d:"Another perpetual mocking loading screen that never delivers.",c:"w",g:"wp"},
+  {u:"https://isitfridayyet.net",t:"Is It Friday Yet? (net)",d:"One more precise answer to the only question that matters.",c:"w",g:"wp"},
+  {u:"https://make-everything-ok.com",t:"Make Everything OK (alt)",d:"One button. One loading bar. Everything is now OK.",c:"w",g:"imp"},
+  {u:"https://popcat.click",t:"Pop Cat",d:"Click or press any key to make the cat pop. Globally addictive and strangely wholesome.",c:"w",g:"ipw"},
+  {u:"https://colorflip.com",t:"Color Flip",d:"Hover and click to peel away layers of color. Rafaël Rozendaal at his minimalist best.",c:"w",g:"ivw"},
+  {u:"https://intotime.com",t:"Into Time",d:"Abstract time-based visual experience. Hypnotic and quietly meditative.",c:"w",g:"ivm"},
+  {u:"https://www.lingscars.com",t:"Ling's Cars",d:"The most gloriously chaotic car dealership website ever created. Overwhelming in the best way.",c:"w",g:"nwp"},
+  {u:"https://thebiguglywebsite.com",t:"The Big Ugly Website",d:"Self-aware ugly website that leans aggressively into its own terribleness. Brilliant meta humor.",c:"w",g:"nwp"},
+  {u:"https://www.apostrophe.org.uk",t:"Apostrophe Protection Society",d:"A passionate, earnest defense of the humble apostrophe. Surprisingly engaging.",c:"w",g:"tp"},
+  {u:"https://wildrose.space",t:"The Wild Rose",d:"Beautiful generative art with a dreamy, floral aesthetic. Quietly stunning.",c:"w",g:"ivbm"},
+  {u:"https://mypillowfort.net",t:"My Pillow Fort",d:"A cozy, wholesome interactive pillow fort experience. Surprisingly comforting.",c:"w",g:"ivm"},
+  {u:"https://mostexclusivewebsite.com",t:"Most Exclusive Website",d:"Only one visitor at a time. Wait in a virtual queue for your moment alone. Brilliant absurd concept.",c:"w",g:"ipw"},
+  {u:"https://purple.com",t:"Purple",d:"A solid purple page. The original minimalist single-serving site.",c:"w",g:"pw"},
+  {u:"https://www.shutupandtakemymoney.com",t:"Shut Up And Take My Money",d:"Gallery of the internet's most unnecessary but irresistible products. Hilarious.",c:"w",g:"tpw"},
+  {u:"https://mschf.com",t:"MSCHF",d:"The viral art collective behind the internet's weirdest projects. Always clever, always surprising.",c:"w",g:"ivpw"},
+  {u:"https://www.bored.com",t:"Bored.com",d:"One of the original curation hubs. A directory of free games, optical illusions, and time-wasters.",c:"w",g:"wp"},
+  {u:"https://watching-grass-grow.com",t:"Watching Grass Grow",d:"Exactly what it says. Oddly relaxing in its absolute commitment to slowness.",c:"w",g:"im"},
+  {u:"https://www.thewebsiteisdown.com",t:"The Website Is Down",d:"Hilarious IT support parody site. Perfectly captures enterprise tech frustration.",c:"w",g:"tpw"},
+  {u:"https://www.nicovideo.jp",t:"Nico Nico Douga",d:"Japanese video site with real-time comments overlaid on screen. A uniquely chaotic culture.",c:"w",g:"avwp"},
+
+  // ===== From websitelist2 — Enlightening =====
+  {u:"https://wikiroulette.co",t:"WikiRoulette",d:"One click, one random Wikipedia article. Clean, fast, serendipitous.",c:"e",g:"tdp"},
+  {u:"https://music-map.com",t:"Music-Map",d:"Visual spiderweb of similar artists. Type a band and explore your sonic neighborhood.",c:"e",g:"avd"},
+  {u:"https://hoaxes.org",t:"Museum of Hoaxes",d:"Fascinating archive of history's most famous hoaxes. An entertaining and educational rabbit hole.",c:"e",g:"tpd"},
+  {u:"https://www.draconika.com",t:"Draconika",d:"A lovingly maintained encyclopedia of dragons, mythology, and fantasy creatures.",c:"e",g:"tpd"},
+  {u:"https://unitednuclear.com",t:"United Nuclear",d:"Scientific supplies, radioactive minerals, and oddities shop. Slightly mad-scientist energy.",c:"e",g:"tsd"},
+  {u:"https://ciechanow.ski/mechanical-watch/",t:"How a Mechanical Watch Works",d:"Bartosz Ciechanowski's stunning interactive explainer of watch mechanics. One of the finest web articles ever written.",c:"e",g:"ivsbd"},
+  {u:"https://ciechanow.ski/curves/",t:"Curves and Surfaces",d:"Beautiful interactive visualizations of Bézier curves, splines, and 3D surfaces.",c:"e",g:"ivsbd"},
+  {u:"https://ncase.me/ballot/",t:"To Build a Better Ballot",d:"Interactive explainer on voting systems and why they produce such different outcomes.",c:"e",g:"isp"},
+
+  // ===== From websitelist2 — Creative Tools =====
+  {u:"https://www.thewildernessdowntown.com",t:"The Wilderness Downtown",d:"Enter your childhood address for a personalized music video to Arcade Fire using Street View. Nostalgic magic.",c:"c",g:"ivap"},
+  {u:"https://neave.com",t:"Neave Interactive",d:"Classic hub of web toys: Bouncy Balls, Strobe Illusion, Tic-Tac-Toe, and retro delights.",c:"c",g:"ipw"},
+  {u:"https://webcamtoy.com",t:"Webcam Toy",d:"80+ real-time effects for your webcam. Instant nostalgia and silly selfies.",c:"c",g:"ivp"},
+  {u:"https://binarypiano.com",t:"Binary Piano",d:"Play piano notes using binary code or keyboard. Geeky musical fun.",c:"c",g:"iapk"},
+  {u:"https://ascii.today",t:"ASCII Today",d:"Live ASCII art generator and gallery. Watch words transform into text art.",c:"c",g:"kwp"},
+  {u:"https://adelfaure.net/artware/ascii_might_fly/",t:"ASCII Might Fly",d:"Beautiful generative ASCII art that flies and evolves. Pure terminal poetry.",c:"c",g:"ivk"},
+  {u:"https://boilthefrog.playlistmachinery.com",t:"Boil the Frog",d:"Gradually connect any two artists through smooth Spotify playlist transitions.",c:"c",g:"aip"},
+  {u:"https://randomcolour.com",t:"Random Colour",d:"A new random color every second with its hex code. Hypnotic and useful for designers.",c:"c",g:"vbk"},
+  {u:"https://rrrgggbbb.com",t:"RRR GGG BBB",d:"RGB color mixer with real-time visual feedback. Simple but deeply satisfying.",c:"c",g:"ivbk"},
+  {u:"https://lines.chromeexperiments.com",t:"Lines",d:"Draw with flowing, physics-based lines. One of Google's early beautiful web experiments.",c:"c",g:"ivk"},
+  {u:"https://www.canva.com",t:"Canva",d:"Drag-and-drop design powerhouse with templates, AI tools, and instant sharing.",c:"c",g:"kivd"},
+  {u:"https://www.remove.bg",t:"Remove.bg",d:"Instantly remove image backgrounds with AI. Magic for designers and meme creators.",c:"c",g:"kiv"},
+  {u:"https://www.framer.com",t:"Framer",d:"Design and prototype interactive websites with code and no-code tools. Stunning motion.",c:"c",g:"kiv"},
+  {u:"https://www.webflow.com",t:"Webflow",d:"Visual web design and hosting. Build production-ready sites without traditional coding.",c:"c",g:"kivd"},
+  {u:"https://www.spline.design",t:"Spline",d:"3D design tool for the web. Create and embed interactive 3D scenes easily.",c:"c",g:"kivb"},
+  {u:"https://www.blender.org",t:"Blender",d:"Free open-source 3D creation suite. Industry-standard modeling, animation, and rendering.",c:"c",g:"kivb"},
+  {u:"https://www.gimp.org",t:"GIMP",d:"Powerful free image editor with advanced features and a rich plugin ecosystem.",c:"c",g:"kivd"},
+  {u:"https://www.inkscape.org",t:"Inkscape",d:"Professional vector graphics editor. Free and open-source alternative to Illustrator.",c:"c",g:"kivd"},
+  {u:"https://www.krita.org",t:"Krita",d:"Free digital painting program optimized for artists and illustrators.",c:"c",g:"kiv"},
+  {u:"https://www.audacityteam.org",t:"Audacity",d:"Free open-source audio editor and recorder. The go-to for podcasters and musicians.",c:"c",g:"ka"},
+  {u:"https://codingfont.com",t:"Coding Font",d:"Test and compare coding fonts side-by-side in a real editor environment. Developer catnip.",c:"c",g:"k"},
+  {u:"https://csh.bz/line/05x6.html",t:"Line 05x6",d:"Minimal interactive line art experiment. Hypnotic and elegant.",c:"c",g:"ivk"},
+  {u:"https://www.tindie.com",t:"Tindie",d:"Marketplace for independent makers and electronics projects. Treasure trove of weird hardware.",c:"c",g:"kd"},
+  {u:"https://www.pixiv.net",t:"Pixiv",d:"Massive Japanese artist community. Discover extraordinary original illustration daily.",c:"c",g:"vbd"},
+  {u:"https://www.deviantart.com",t:"DeviantArt",d:"Long-running global art community with millions of original works across every genre.",c:"c",g:"vbd"},
+  {u:"https://www.artstation.com",t:"ArtStation",d:"Professional digital art portfolios. Breathtaking concept art and visual development.",c:"c",g:"vbd"},
+  {u:"https://www.behance.net",t:"Behance",d:"Adobe's creative portfolio platform. See how the world's top designers actually work.",c:"c",g:"vbd"},
+  {u:"https://dribbble.com",t:"Dribbble",d:"Design inspiration shot by shot. The global design community's heartbeat.",c:"c",g:"vbd"},
+
+  // ===== From websitelist2 — Archives =====
+  {u:"https://www.milliondollarhomepage.com",t:"The Million Dollar Homepage",d:"2005 pixel-art time capsule where people paid $1 per pixel for ads. A frozen artifact of early web commerce.",c:"a",g:"nvd"},
+  {u:"https://skins.webamp.org",t:"Webamp Skins",d:"Enormous gallery of classic Winamp skins. The full force of late-90s digital aesthetics.",c:"a",g:"nv"},
+  {u:"https://peanutbuttaz.neocities.org",t:"Peanut Buttaz",d:"A gloriously weird and charming personal Neocities site full of early-internet energy.",c:"a",g:"nwp"},
+  {u:"https://sweethard666.neocities.org",t:"Sweet Hard 666",d:"Delightfully chaotic Neocities site with maximum creative abandon.",c:"a",g:"nwp"}
 ];
 
 // ----- State -----
@@ -613,13 +784,13 @@ function renderFilters() {
 function renderStats() {
   const pool = SITES.filter(s => activeFilters.has(s.c)).length;
   const stumbled = history.length;
-  document.getElementById("stats").textContent = `${pool} sites in pool · ${SITES.length} total · ${stumbled} stumbled`;
+  document.getElementById("stats").textContent = `${pool} sites in pool · ${SITES.length} total · ${stumbled} drifted`;
 }
 
 function renderCard() {
   const el = document.getElementById("cardArea");
   if (!currentSite) {
-    el.innerHTML = `<div class="empty">Hit Stumble to begin your walk.</div>`;
+    el.innerHTML = `<div class="empty">Hit Drift to begin your walk.</div>`;
     return;
   }
   const s = currentSite;
